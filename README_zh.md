@@ -2,27 +2,38 @@
 
 [English README](./README.md)
 
-使用 GitHub Actions 为 Linux、macOS 和 Windows 构建 OpenAI Codex CLI 的 portable 便携包。
+面向 Linux、macOS 和 Windows 的 OpenAI Codex CLI portable 便携包。
 
-这个仓库不直接提交 Codex 二进制文件。每次发布时，GitHub Actions 会下载官方 `@openai/codex` npm 包，提取原生 Codex 可执行文件和自带的 `rg`，再重新打包成便于离线搬运的压缩包。
+每个 GitHub release 都会把官方 `@openai/codex` 二进制和自带的 `rg` 重新打包成便于搬运的归档文件，适合受限网络环境或完全离线环境使用。
 
-## 快速安装
+Release 页面：
 
-下面的命令默认下载当前最新发布的 portable 版本。如果你想固定旧版本，把自动获取到的 tag 改成例如 `v0.120.0` 即可。
+- `https://github.com/HansBug/codex-portable/releases`
+
+## 先选安装路径
+
+你可以按场景选择：
+
+- `Fast install`：目标机器本身能联网，能直接从 GitHub 下载
+- `Manual / offline install`：先在别的机器下载归档，再手工拷贝到目标机器解压运行
+
+## Fast install
+
+下面的命令默认安装最新 release。如果你想固定旧版本，把自动获取到的 tag 换成指定值，例如 `v0.120.0`。
 
 ### Linux x64（bash）
 
 ```bash
 REPO="HansBug/codex-portable"
-VER="$(curl -fsSL "https://api.github.com/repos/$REPO/releases/latest" | grep -m1 '"tag_name"' | cut -d '"' -f 4)"
+VER="$(curl -fsSL "https://api.github.com/repos/$REPO/releases/latest" | sed -n 's/.*"tag_name": "\([^"]*\)".*/\1/p')"
 ASSET="codex-portable-x86_64-unknown-linux-musl-${VER}.tar.gz"
 
+touch "$HOME/.bashrc"
 curl -fL -o "$ASSET" "https://github.com/$REPO/releases/download/$VER/$ASSET"
-mkdir -p "$HOME/.local/lib" "$HOME/.local/bin"
+mkdir -p "$HOME/.local/lib"
 tar -xzf "$ASSET" -C "$HOME/.local/lib"
 ln -sfn "$HOME/.local/lib/${ASSET%.tar.gz}" "$HOME/.local/lib/codex-portable"
-ln -sfn "$HOME/.local/lib/codex-portable/codex" "$HOME/.local/bin/codex"
-grep -qxF 'export PATH="$HOME/.local/bin:$PATH"' "$HOME/.bashrc" || echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
+grep -qxF 'export PATH="$HOME/.local/lib/codex-portable:$PATH"' "$HOME/.bashrc" || echo 'export PATH="$HOME/.local/lib/codex-portable:$PATH"' >> "$HOME/.bashrc"
 
 source "$HOME/.bashrc"
 codex --version
@@ -32,21 +43,21 @@ codex --version
 
 ```zsh
 REPO="HansBug/codex-portable"
-VER="$(curl -fsSL "https://api.github.com/repos/$REPO/releases/latest" | grep -m1 '"tag_name"' | cut -d '"' -f 4)"
+VER="$(curl -fsSL "https://api.github.com/repos/$REPO/releases/latest" | sed -n 's/.*"tag_name": "\([^"]*\)".*/\1/p')"
 ASSET="codex-portable-aarch64-apple-darwin-${VER}.tar.gz"
 
+touch "$HOME/.zshrc"
 curl -fL -o "$ASSET" "https://github.com/$REPO/releases/download/$VER/$ASSET"
-mkdir -p "$HOME/.local/lib" "$HOME/.local/bin"
+mkdir -p "$HOME/.local/lib"
 tar -xzf "$ASSET" -C "$HOME/.local/lib"
 ln -sfn "$HOME/.local/lib/${ASSET%.tar.gz}" "$HOME/.local/lib/codex-portable"
-ln -sfn "$HOME/.local/lib/codex-portable/codex" "$HOME/.local/bin/codex"
-grep -qxF 'export PATH="$HOME/.local/bin:$PATH"' "$HOME/.zshrc" || echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.zshrc"
+grep -qxF 'export PATH="$HOME/.local/lib/codex-portable:$PATH"' "$HOME/.zshrc" || echo 'export PATH="$HOME/.local/lib/codex-portable:$PATH"' >> "$HOME/.zshrc"
 
 source "$HOME/.zshrc"
 codex --version
 ```
 
-如果你在 macOS 上用的是 `bash`，把上面的 `~/.zshrc` 改成 `~/.bashrc` 即可。
+如果你在 macOS 上用的是 `bash`，把 PATH 那一行写到 `~/.bashrc` 即可。
 
 ### Windows PowerShell
 
@@ -71,7 +82,7 @@ $env:Path = "$Bundle;$env:Path"
 codex --version
 ```
 
-如果 PowerShell 因执行策略不允许脚本运行，可以直接用 `codex.cmd --version`，或者执行：
+如果 PowerShell 执行策略阻止脚本，可以直接运行 `codex.cmd --version`，或者先执行：
 
 ```powershell
 Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
@@ -79,25 +90,94 @@ Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 
 ### Windows 命令提示符（CMD）
 
-在 `cmd.exe` 里依次执行：
+在 `cmd.exe` 中执行：
 
 ```cmd
-powershell -NoProfile -Command ^
-  "$repo='HansBug/codex-portable';" ^
-  "$ver=(Invoke-RestMethod \"https://api.github.com/repos/$repo/releases/latest\").tag_name;" ^
-  "$asset=\"codex-portable-x86_64-pc-windows-msvc-$ver.zip\";" ^
-  "Invoke-WebRequest \"https://github.com/$repo/releases/download/$ver/$asset\" -OutFile $asset;" ^
-  "$root=Join-Path $env:LOCALAPPDATA 'Programs';" ^
-  "New-Item -ItemType Directory -Force $root | Out-Null;" ^
-  "Expand-Archive $asset -DestinationPath $root -Force;" ^
-  "Write-Host (Join-Path $root ($asset -replace '\.zip$',''))"
-dir /ad /b "%LOCALAPPDATA%\Programs\codex-portable-*"
+for /f %i in ('powershell -NoProfile -Command "(Invoke-RestMethod ''https://api.github.com/repos/HansBug/codex-portable/releases/latest'').tag_name"') do set "VER=%i"
 ```
 
-然后把输出出来的目录加到用户 `PATH` 里，重新打开一个新的 `cmd.exe`，再执行：
+```cmd
+powershell -NoProfile -Command "$asset='codex-portable-x86_64-pc-windows-msvc-%VER%.zip'; $root=Join-Path $env:LOCALAPPDATA 'Programs'; Invoke-WebRequest \"https://github.com/HansBug/codex-portable/releases/download/%VER%/$asset\" -OutFile $asset; New-Item -ItemType Directory -Force $root | Out-Null; Expand-Archive $asset -DestinationPath $root -Force; $bundle=Join-Path $root ($asset -replace '\.zip$',''); $userPath=[Environment]::GetEnvironmentVariable('Path','User'); if([string]::IsNullOrWhiteSpace($userPath)){[Environment]::SetEnvironmentVariable('Path',$bundle,'User')} elseif(($userPath -split ';') -notcontains $bundle){[Environment]::SetEnvironmentVariable('Path',\"$userPath;$bundle\",'User')}; Write-Host $bundle"
+```
+
+重新打开一个新的 `cmd.exe`，再验证：
 
 ```cmd
-codex --version
+codex.cmd --version
+```
+
+## Manual / offline install
+
+如果目标机器完全没网，或者你希望手工搬运归档文件，就走这一条。
+
+### 1. 打开 release 页面
+
+- `https://github.com/HansBug/codex-portable/releases`
+
+### 2. 下载正确的归档文件
+
+Linux 和 macOS 推荐优先下载 `tar.gz`，因为它能保留可执行权限。
+
+- Linux x64：`codex-portable-x86_64-unknown-linux-musl-vX.Y.Z.tar.gz`
+- macOS arm64：`codex-portable-aarch64-apple-darwin-vX.Y.Z.tar.gz`
+- Windows x64：`codex-portable-x86_64-pc-windows-msvc-vX.Y.Z.zip`
+- 可选校验文件：对应的 `*.sha256`
+
+### 3. 解压并启动
+
+请保持整个解压目录完整，不要只把 `codex`、`codex.cmd` 或 `codex.ps1` 单独拷到别的目录里；启动器依赖同目录下的配套文件。
+
+#### Linux x64
+
+```bash
+tar -xzf codex-portable-x86_64-unknown-linux-musl-vX.Y.Z.tar.gz
+cd codex-portable-x86_64-unknown-linux-musl-vX.Y.Z
+./codex --version
+```
+
+#### macOS arm64
+
+```zsh
+tar -xzf codex-portable-aarch64-apple-darwin-vX.Y.Z.tar.gz
+cd codex-portable-aarch64-apple-darwin-vX.Y.Z
+./codex --version
+```
+
+#### Windows
+
+1. 解压 `codex-portable-x86_64-pc-windows-msvc-vX.Y.Z.zip`
+2. 在解压后的目录里打开 `cmd.exe` 或 PowerShell
+3. 优先运行 `codex.cmd --version`
+4. 如果你习惯 PowerShell，也可以运行 `.\codex.ps1 --version`
+5. 如果 PowerShell 阻止执行脚本，可以继续用 `codex.cmd`，或者执行：
+
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+```
+
+### 4. 可选：把解压后的目录加入 PATH
+
+- Linux/macOS：把解压出来的 bundle 目录本身加入 `PATH`
+- Windows：把解压后的目录本身加入用户 `Path`
+
+Linux 示例：
+
+```bash
+echo 'export PATH="/path/to/codex-portable-x86_64-unknown-linux-musl-vX.Y.Z:$PATH"' >> "$HOME/.bashrc"
+source "$HOME/.bashrc"
+```
+
+macOS 示例：
+
+```zsh
+echo 'export PATH="/path/to/codex-portable-aarch64-apple-darwin-vX.Y.Z:$PATH"' >> "$HOME/.zshrc"
+source "$HOME/.zshrc"
+```
+
+Windows 可以在系统设置里手工加，也可以用 PowerShell：
+
+```powershell
+[Environment]::SetEnvironmentVariable('Path', "$env:Path;C:\path\to\codex-portable-x86_64-pc-windows-msvc-vX.Y.Z", 'User')
 ```
 
 ## 基础配置
@@ -122,7 +202,7 @@ EOF
 export OPENAI_API_KEY="replace-with-your-api-key"
 ```
 
-如果希望终端重开后仍然生效，把 `export OPENAI_API_KEY=...` 追加到 `~/.bashrc` 或 `~/.zshrc`。
+如果希望终端重开后依然生效，把 export 那一行追加到 `~/.bashrc` 或 `~/.zshrc`。
 
 ### Windows PowerShell
 
@@ -174,7 +254,7 @@ setx OPENAI_API_KEY "replace-with-your-api-key"
 
 ## 可选代理配置
 
-如果目标环境访问模型服务必须经过 HTTP 或 SOCKS 代理，再设置下面这些环境变量。
+只有当目标环境访问模型服务必须经过 HTTP 或 SOCKS 代理时，才需要设置这些环境变量。
 
 ### Linux 和 macOS
 
@@ -200,17 +280,21 @@ set HTTPS_PROXY=http://127.0.0.1:7890
 set ALL_PROXY=socks5://127.0.0.1:1080
 ```
 
-## 每个便携包里有什么
+## 每个 bundle 里有什么
 
 每个 bundle 都包含：
 
-- 一个轻量启动器：`codex`、`codex.cmd` 或 `codex.ps1`
+- 启动器：`codex`、`codex.cmd` 或 `codex.ps1`
 - 官方包里的原生 Codex 可执行文件
-- Codex 使用的 `rg` 可执行文件
-- 一份简短的 portable 使用说明
+- 自带的 `rg`
+- 一份简短的 portable 说明
 - 仓库许可证和元数据
 
-这些 bundle 不包含用户数据，例如 `~/.codex`、`auth.json`、会话记录、日志和本地 memory。
+bundle 不包含用户数据，例如 `~/.codex`、`auth.json`、历史会话、日志或 memory。
+
+## 验证情况
+
+本 README 里的 Linux `Fast install`、`Manual / offline install` 和 `Basic config` 已在干净的 Ubuntu Docker 容器中实际验证后再发布。
 
 ## Release 与构建工作流
 
@@ -219,7 +303,7 @@ set ALL_PROXY=socks5://127.0.0.1:1080
 `Build Portable Codex` 支持：
 
 - `workflow_dispatch`：手动构建
-- `release.published`：在 release 发布后自动构建并把压缩包上传到该 release
+- `release.published`：release 发布后自动构建并上传归档文件
 
 手动输入参数：
 
@@ -228,14 +312,14 @@ set ALL_PROXY=socks5://127.0.0.1:1080
 
 ### Watch Upstream Codex Release
 
-`Watch Upstream Codex Release` 每 3 小时执行一次，也支持手动触发。
+`Watch Upstream Codex Release` 每 3 小时运行一次，也支持手动触发。
 
 它会：
 
-- 默认从 npm 获取最新稳定版 `@openai/codex`，或者使用你手动传入的 `codex_version`
-- 拉取 `openai/codex` 对应的 upstream release 信息
-- 用配置好的模型接口生成简短的 release 摘要
-- 在本仓库里创建 `vX.Y.Z` 格式的 release
+- 默认从 npm 解析最新稳定版 `@openai/codex`，或者使用你手动传入的 `codex_version`
+- 拉取 `openai/codex` 对应的 upstream release
+- 使用配置好的模型接口生成 release 文本
+- 创建 `vX.Y.Z` 格式的仓库 release
 - 再由下游 `release.published` 工作流完成构建和附件上传
 
 需要的仓库 secrets：
@@ -245,29 +329,29 @@ set ALL_PROXY=socks5://127.0.0.1:1080
 - `PORTABLE_TEST_API_KEY`
 - `PORTABLE_TEST_MODEL`
 
-其中 `RELEASE_WORKFLOW_TOKEN` 必须能在这个仓库里创建 release，因为默认的 `GITHUB_TOKEN` 在创建 release 后不会继续触发下游 workflow。
+其中 `RELEASE_WORKFLOW_TOKEN` 需要能在这个仓库里创建 release，因为默认 `GITHUB_TOKEN` 创建 release 后不会继续触发下游 workflow。
 
-## Smoke Test
+## Smoke tests
 
-每次构建完成后，workflow 会把刚打出来的 artifact 下载到一台全新的 runner 上，写入最小化的 `config.toml`，然后对真实模型接口执行 `codex exec` 验证。
+每次构建完成后，GitHub Actions 都会把生成的 artifact 下载到全新 runner，写入最小 `config.toml`，并对真实模型接口执行 `codex exec` 验证。
 
 当前 smoke test 会检查：
 
 - bundle 能正常启动，`codex exec` 可用
-- 打包后的文件结构是否完整
-- 工具读文件时是否出现 `command_execution` 事件
-- 系统写文件时是否出现 `command_execution` 事件
+- 打包文件结构正确
+- 工具读文件时出现 `command_execution` 事件
+- 系统写文件时出现 `command_execution` 事件
 
 ## 本地开发
 
-本地可以直接运行打包脚本：
+本地可以直接运行：
 
 ```bash
 node scripts/build-portable.mjs --version latest
 ```
 
-输出目录是 `dist/`。
+输出目录为 `dist/`。
 
 ## 许可证
 
-本仓库采用 Apache-2.0 许可证。打包分发的 Codex 二进制文件来自 upstream `@openai/codex` npm 包，该包同样采用 Apache-2.0。
+本仓库使用 Apache-2.0。打包分发的 Codex 二进制来自 upstream `@openai/codex`，其许可证同样为 Apache-2.0。
