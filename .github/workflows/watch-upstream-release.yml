@@ -6,9 +6,9 @@ on:
   workflow_dispatch:
     inputs:
       codex_version:
-        description: Exact @openai/codex version to publish. Defaults to the latest npm release.
+        description: "@openai/codex version to publish. Use latest by default, or an exact version such as 0.120.0."
         required: false
-        default: ""
+        default: latest
         type: string
       overwrite_existing:
         description: Delete and recreate the release if vX.Y.Z already exists.

@@ -63,6 +63,11 @@ It:
 - creates a repository release tagged as `vX.Y.Z`
 - relies on the downstream `release.published` trigger to build and attach portable artifacts
 
+Manual examples:
+
+- leave `codex_version=latest` to publish the newest stable npm release
+- set `codex_version=0.120.0` to backfill or rebuild a specific older Codex version as `v0.120.0`
+
 This watcher requires one extra repository secret:
 
 - `RELEASE_WORKFLOW_TOKEN`
@@ -77,6 +82,9 @@ The smoke tests and the release-note generation both expect these repository sec
 
 ## Manual build usage
 Use the `Build Portable Codex` workflow and optionally provide a `codex_version` input if you want artifacts without creating a release.
+
+- `codex_version=latest` builds the latest stable npm release
+- `codex_version=0.120.0` builds a pinned historical release without creating a GitHub release
 
 ## Artifact behavior
 

@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       codex_version:
-        description: npm version or dist-tag for @openai/codex
+        description: "@openai/codex version to build. Use latest by default, or an exact version such as 0.120.0."
         required: false
         default: latest
         type: string
