@@ -167,14 +167,34 @@ jobs:
 
           prompt_file="$workdir/prompt.txt"
           cat > "$prompt_file" <<EOF
-          Write exactly 3 markdown bullet points that summarize the most important user-facing changes in OpenAI Codex CLI ${RELEASE_VERSION}.
+          Write a fuller markdown release summary for OpenAI Codex CLI ${RELEASE_VERSION}.
 
           Requirements:
           - Use only the source material below.
-          - Keep each bullet under 18 words.
-          - Focus on concrete changes, fixes, or new capabilities.
+          - Be aggressive about surfacing the most meaningful changes instead of compressing everything into a few short bullets.
+          - Err on the side of including more concrete, high-signal changes when the source clearly supports them.
+          - Prefer specific nouns, commands, subsystems, and platform names over vague wording.
+          - Do not collapse unrelated feature areas into a single generic bullet if they can be summarized separately.
+          - Focus on concrete features, fixes, platform/runtime behavior changes, and operationally relevant engineering improvements.
           - Do not mention this repository, GitHub Actions, or portable packaging.
-          - Do not add headings, numbering, prose, or links.
+          - Do not include source links.
+          - Do not invent changes that are not supported by the source material.
+          - Use exactly this markdown structure:
+            A short opening paragraph of 2 sentences.
+
+            ## Highlights
+            - 5 to 7 bullets.
+            - Each bullet should be one sentence and may be longer than the previous version if needed for clarity.
+            - Prioritize visible product or workflow changes first.
+
+            ## Stability and fixes
+            - 3 to 5 bullets.
+            - Focus on behavior corrections, platform fixes, or reliability improvements.
+
+            ## Engineering notes
+            - 2 to 4 bullets.
+            - Focus on release/build verification, architecture, storage, documentation, or maintainability work when it matters to advanced users and operators.
+          - If the upstream release spans multiple domains, try to cover plugin/marketplace, TUI/app UX, memory/state management, MCP/app-server/realtime APIs, platform fixes, and release engineering where supported by the source.
 
           Upstream release title: ${UPSTREAM_NAME}
           Upstream release URL: ${UPSTREAM_URL}
@@ -185,7 +205,7 @@ jobs:
           EOF
 
           prompt="$(cat "$prompt_file")"
-          highlights_file="$workdir/highlights.md"
+          generated_body_file="$workdir/generated-body.md"
           notes_file="$workdir/release-notes.md"
 
           npx -y @openai/codex@"$RELEASE_VERSION" exec \
@@ -193,15 +213,17 @@ jobs:
             --dangerously-bypass-approvals-and-sandbox \
             --color never \
             -C "$workdir" \
-            -o "$highlights_file" \
+            -o "$generated_body_file" \
             "$prompt" < /dev/null
 
-          grep -Eq '^[-*] ' "$highlights_file"
+          grep -q '^## Highlights$' "$generated_body_file"
+          grep -q '^## Stability and fixes$' "$generated_body_file"
+          grep -q '^## Engineering notes$' "$generated_body_file"
 
           {
             printf 'Portable bundles for OpenAI Codex CLI `%s`.\n\n' "$RELEASE_VERSION"
-            cat "$highlights_file"
-            printf '\nSource links:\n'
+            cat "$generated_body_file"
+            printf '\n\n## Source links\n\n'
             printf -- '- Upstream release: %s\n' "$UPSTREAM_URL"
             if [ -n "${COMPARE_URL:-}" ]; then
               printf -- '- Compare: %s\n' "$COMPARE_URL"
