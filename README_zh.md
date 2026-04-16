@@ -1,16 +1,16 @@
 # codex-portable
 
-[中文说明 / Chinese README](./README_zh.md)
+[English README](./README.md)
 
-Build portable OpenAI Codex CLI bundles for Linux, macOS, and Windows with GitHub Actions.
+使用 GitHub Actions 为 Linux、macOS 和 Windows 构建 OpenAI Codex CLI 的 portable 便携包。
 
-This repository does not commit Codex binaries. Each release downloads the official `@openai/codex` npm package on GitHub-hosted runners, repackages the native binary plus the bundled `rg` executable, and publishes portable archives for offline transfer.
+这个仓库不直接提交 Codex 二进制文件。每次发布时，GitHub Actions 会下载官方 `@openai/codex` npm 包，提取原生 Codex 可执行文件和自带的 `rg`，再重新打包成便于离线搬运的压缩包。
 
-## Quick install
+## 快速安装
 
-The snippets below download the latest published portable release. To pin an older version, replace the auto-detected tag with a fixed one such as `v0.120.0`.
+下面的命令默认下载当前最新发布的 portable 版本。如果你想固定旧版本，把自动获取到的 tag 改成例如 `v0.120.0` 即可。
 
-### Linux x64 (bash)
+### Linux x64（bash）
 
 ```bash
 REPO="HansBug/codex-portable"
@@ -28,7 +28,7 @@ source "$HOME/.bashrc"
 codex --version
 ```
 
-### macOS arm64 (zsh)
+### macOS arm64（zsh）
 
 ```zsh
 REPO="HansBug/codex-portable"
@@ -46,7 +46,7 @@ source "$HOME/.zshrc"
 codex --version
 ```
 
-If you use `bash` on macOS, write the PATH line to `~/.bashrc` instead of `~/.zshrc`.
+如果你在 macOS 上用的是 `bash`，把上面的 `~/.zshrc` 改成 `~/.bashrc` 即可。
 
 ### Windows PowerShell
 
@@ -71,15 +71,15 @@ $env:Path = "$Bundle;$env:Path"
 codex --version
 ```
 
-If PowerShell script execution is restricted, either run `codex.cmd --version` or enable local scripts with:
+如果 PowerShell 因执行策略不允许脚本运行，可以直接用 `codex.cmd --version`，或者执行：
 
 ```powershell
 Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 ```
 
-### Windows Command Prompt
+### Windows 命令提示符（CMD）
 
-Run these lines in `cmd.exe`:
+在 `cmd.exe` 里依次执行：
 
 ```cmd
 powershell -NoProfile -Command ^
@@ -94,17 +94,17 @@ powershell -NoProfile -Command ^
 dir /ad /b "%LOCALAPPDATA%\Programs\codex-portable-*"
 ```
 
-Then add the printed folder to your user `PATH` from Windows Settings, open a new `cmd.exe`, and run:
+然后把输出出来的目录加到用户 `PATH` 里，重新打开一个新的 `cmd.exe`，再执行：
 
 ```cmd
 codex --version
 ```
 
-## Basic config
+## 基础配置
 
-Replace the placeholder values with your real model, base URL, and API key.
+把下面示例里的模型名、`base_url` 和 API Key 替换成你自己的真实值。
 
-### Linux and macOS
+### Linux 和 macOS
 
 ```bash
 mkdir -p "$HOME/.codex"
@@ -122,7 +122,7 @@ EOF
 export OPENAI_API_KEY="replace-with-your-api-key"
 ```
 
-To keep the key across terminal restarts, append the `export OPENAI_API_KEY=...` line to `~/.bashrc` or `~/.zshrc`.
+如果希望终端重开后仍然生效，把 `export OPENAI_API_KEY=...` 追加到 `~/.bashrc` 或 `~/.zshrc`。
 
 ### Windows PowerShell
 
@@ -142,13 +142,13 @@ wire_api = "responses"
 $env:OPENAI_API_KEY = 'replace-with-your-api-key'
 ```
 
-To keep the key across terminal restarts:
+如果希望永久生效：
 
 ```powershell
 [Environment]::SetEnvironmentVariable('OPENAI_API_KEY', 'replace-with-your-api-key', 'User')
 ```
 
-### Windows Command Prompt
+### Windows 命令提示符（CMD）
 
 ```cmd
 mkdir "%USERPROFILE%\.codex"
@@ -166,17 +166,17 @@ echo wire_api = "responses"
 set OPENAI_API_KEY=replace-with-your-api-key
 ```
 
-To keep the key across terminal restarts:
+如果希望永久生效：
 
 ```cmd
 setx OPENAI_API_KEY "replace-with-your-api-key"
 ```
 
-## Optional proxy setup
+## 可选代理配置
 
-Use these only if your target environment must reach the model provider through an HTTP or SOCKS proxy.
+如果目标环境访问模型服务必须经过 HTTP 或 SOCKS 代理，再设置下面这些环境变量。
 
-### Linux and macOS
+### Linux 和 macOS
 
 ```bash
 export HTTP_PROXY="http://127.0.0.1:7890"
@@ -192,7 +192,7 @@ $env:HTTPS_PROXY = 'http://127.0.0.1:7890'
 $env:ALL_PROXY = 'socks5://127.0.0.1:1080'
 ```
 
-### Windows Command Prompt
+### Windows 命令提示符（CMD）
 
 ```cmd
 set HTTP_PROXY=http://127.0.0.1:7890
@@ -200,74 +200,74 @@ set HTTPS_PROXY=http://127.0.0.1:7890
 set ALL_PROXY=socks5://127.0.0.1:1080
 ```
 
-## What each bundle contains
+## 每个便携包里有什么
 
-Each bundle includes:
+每个 bundle 都包含：
 
-- a small launcher (`codex`, `codex.cmd`, or `codex.ps1`)
-- the native Codex binary from the official package
-- the bundled `rg` executable used by Codex
-- a short portable usage guide
-- repository license and metadata
+- 一个轻量启动器：`codex`、`codex.cmd` 或 `codex.ps1`
+- 官方包里的原生 Codex 可执行文件
+- Codex 使用的 `rg` 可执行文件
+- 一份简短的 portable 使用说明
+- 仓库许可证和元数据
 
-The bundle does not include user state such as `~/.codex`, `auth.json`, sessions, logs, or local memories.
+这些 bundle 不包含用户数据，例如 `~/.codex`、`auth.json`、会话记录、日志和本地 memory。
 
-## Release and build workflows
+## Release 与构建工作流
 
 ### Build Portable Codex
 
-`Build Portable Codex` supports:
+`Build Portable Codex` 支持：
 
-- `workflow_dispatch` for manual builds
-- `release.published` for release builds that also upload archives to the GitHub release
+- `workflow_dispatch`：手动构建
+- `release.published`：在 release 发布后自动构建并把压缩包上传到该 release
 
-Manual input:
+手动输入参数：
 
-- `codex_version=latest` builds the newest stable `@openai/codex`
-- `codex_version=0.120.0` builds a pinned historical version
+- `codex_version=latest`：构建最新稳定版 `@openai/codex`
+- `codex_version=0.120.0`：构建指定历史版本
 
 ### Watch Upstream Codex Release
 
-`Watch Upstream Codex Release` runs every 3 hours and also supports `workflow_dispatch`.
+`Watch Upstream Codex Release` 每 3 小时执行一次，也支持手动触发。
 
-It:
+它会：
 
-- resolves the latest stable `@openai/codex` version from npm unless you pass a fixed `codex_version`
-- fetches the matching upstream GitHub release from `openai/codex`
-- uses the configured model endpoint to generate short release highlights
-- creates a repository release tagged as `vX.Y.Z`
-- lets the downstream `release.published` workflow build and attach the portable archives
+- 默认从 npm 获取最新稳定版 `@openai/codex`，或者使用你手动传入的 `codex_version`
+- 拉取 `openai/codex` 对应的 upstream release 信息
+- 用配置好的模型接口生成简短的 release 摘要
+- 在本仓库里创建 `vX.Y.Z` 格式的 release
+- 再由下游 `release.published` 工作流完成构建和附件上传
 
-Required repository secrets:
+需要的仓库 secrets：
 
 - `RELEASE_WORKFLOW_TOKEN`
 - `PORTABLE_TEST_BASE_URL`
 - `PORTABLE_TEST_API_KEY`
 - `PORTABLE_TEST_MODEL`
 
-`RELEASE_WORKFLOW_TOKEN` should be a token that can create releases in this repository. It is needed because the default `GITHUB_TOKEN` does not trigger downstream workflows when it creates a release.
+其中 `RELEASE_WORKFLOW_TOKEN` 必须能在这个仓库里创建 release，因为默认的 `GITHUB_TOKEN` 在创建 release 后不会继续触发下游 workflow。
 
-## Smoke tests
+## Smoke Test
 
-After each build, the workflow downloads the generated artifact onto a fresh runner, writes a minimal `config.toml`, and runs real `codex exec` checks against the configured API endpoint.
+每次构建完成后，workflow 会把刚打出来的 artifact 下载到一台全新的 runner 上，写入最小化的 `config.toml`，然后对真实模型接口执行 `codex exec` 验证。
 
-The smoke tests verify:
+当前 smoke test 会检查：
 
-- bundle startup and normal `codex exec`
-- packaged file layout
-- a tool-read probe that emits a `command_execution` event
-- a system-write probe that emits a `command_execution` event
+- bundle 能正常启动，`codex exec` 可用
+- 打包后的文件结构是否完整
+- 工具读文件时是否出现 `command_execution` 事件
+- 系统写文件时是否出现 `command_execution` 事件
 
-## Local development
+## 本地开发
 
-Run the packaging script locally with:
+本地可以直接运行打包脚本：
 
 ```bash
 node scripts/build-portable.mjs --version latest
 ```
 
-The script writes its output to `dist/`.
+输出目录是 `dist/`。
 
-## License
+## 许可证
 
-This repository is licensed under Apache-2.0. Packaged Codex binaries are redistributed from the upstream `@openai/codex` package, which is also published under Apache-2.0.
+本仓库采用 Apache-2.0 许可证。打包分发的 Codex 二进制文件来自 upstream `@openai/codex` npm 包，该包同样采用 Apache-2.0。
