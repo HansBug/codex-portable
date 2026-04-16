@@ -22,7 +22,14 @@ Each bundle contains:
 
 ## Smoke test stage
 
-After the build job finishes, the workflow downloads the generated artifact in a second stage, extracts it on a fresh runner, writes a minimal `config.toml`, and runs a real `codex exec` call against the configured API endpoint.
+After the build job finishes, the workflow downloads the generated artifact in a second stage, extracts it on a fresh runner, writes a minimal `config.toml`, and runs multiple real `codex exec` checks against the configured API endpoint.
+
+The smoke test currently validates:
+
+- basic artifact startup and `codex exec`
+- bundle layout and expected packaged files
+- a tool-read probe that confirms a `command_execution` event happened while reading a workspace file
+- a system-operation probe that confirms a `command_execution` event happened while creating a workspace file
 
 The smoke test expects these repository secrets:
 

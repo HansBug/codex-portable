@@ -200,7 +200,7 @@ jobs:
           "@ | Set-Content -Path (Join-Path $codexHome 'config.toml')
           "CODEX_HOME=$codexHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
-      - name: Smoke test on Linux and macOS
+      - name: Basic smoke test on Linux and macOS
         if: runner.os != 'Windows'
         shell: bash
         env:
@@ -217,7 +217,7 @@ jobs:
             'Reply with exactly PORTABLE_OK and stop.' < /dev/null
           test "$(tr -d '\r\n' < "$RUNNER_TEMP/portable-last.txt")" = "PORTABLE_OK"
 
-      - name: Smoke test on Windows
+      - name: Basic smoke test on Windows
         if: runner.os == 'Windows'
         shell: pwsh
         env:
@@ -235,4 +235,159 @@ jobs:
           $result = (Get-Content (Join-Path $env:RUNNER_TEMP 'portable-last.txt') -Raw).Trim()
           if ($result -ne 'PORTABLE_OK') {
             throw "Unexpected smoke test result: $result"
+          }
+
+      - name: Verify bundle layout on Linux and macOS
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f "artifact-input/build-metadata.json"
+          test -f "$BUNDLE_DIR/README-portable.txt"
+          test -f "$BUNDLE_DIR/LICENSE"
+          test -f "$BUNDLE_DIR/AGENTS.md"
+          test -f "$BUNDLE_DIR/portable-metadata.json"
+          test -f "$BUNDLE_DIR/codex"
+          test -x "$BUNDLE_DIR/codex"
+          test -f "$BUNDLE_DIR/bin/codex-real"
+          test -x "$BUNDLE_DIR/bin/codex-real"
+
+      - name: Verify bundle layout on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          if (-not (Test-Path 'artifact-input/build-metadata.json')) {
+            throw 'build-metadata.json is missing'
+          }
+          foreach ($path in @(
+            (Join-Path $env:BUNDLE_DIR 'README-portable.txt'),
+            (Join-Path $env:BUNDLE_DIR 'LICENSE'),
+            (Join-Path $env:BUNDLE_DIR 'AGENTS.md'),
+            (Join-Path $env:BUNDLE_DIR 'portable-metadata.json'),
+            (Join-Path $env:BUNDLE_DIR 'codex.cmd'),
+            (Join-Path $env:BUNDLE_DIR 'codex.ps1'),
+            (Join-Path (Join-Path $env:BUNDLE_DIR 'bin') 'codex-real.exe')
+          )) {
+            if (-not (Test-Path $path)) {
+              throw "Expected bundle path is missing: $path"
+            }
+          }
+
+      - name: Tool read test on Linux and macOS
+        if: runner.os != 'Windows'
+        shell: bash
+        env:
+          PORTABLE_TEST_API_KEY: ${{ secrets.PORTABLE_TEST_API_KEY }}
+        run: |
+          set -euo pipefail
+          workspace="$RUNNER_TEMP/tool-read-workspace"
+          rm -rf "$workspace"
+          mkdir -p "$workspace"
+          token=$(uuidgen | tr '[:upper:]' '[:lower:]')
+          printf '%s' "$token" > "$workspace/challenge.txt"
+          json_path="$RUNNER_TEMP/tool-read-events.jsonl"
+          out_path="$RUNNER_TEMP/tool-read-last.txt"
+          "$BUNDLE_DIR/codex" exec \
+            --json \
+            --skip-git-repo-check \
+            --dangerously-bypass-approvals-and-sandbox \
+            --color never \
+            -C "$workspace" \
+            -o "$out_path" \
+            "Use a shell command to read challenge.txt from the current working directory, then reply with exactly TOOL_READ_OK:$token and nothing else." \
+            < /dev/null > "$json_path"
+          test "$(tr -d '\r\n' < "$out_path")" = "TOOL_READ_OK:$token"
+          grep -q '"type":"command_execution"' "$json_path"
+
+      - name: Tool read test on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          PORTABLE_TEST_API_KEY: ${{ secrets.PORTABLE_TEST_API_KEY }}
+        run: |
+          $workspace = Join-Path $env:RUNNER_TEMP 'tool-read-workspace'
+          Remove-Item $workspace -Recurse -Force -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Path $workspace -Force | Out-Null
+          $token = [guid]::NewGuid().ToString('N')
+          Set-Content -Path (Join-Path $workspace 'challenge.txt') -Value $token -NoNewline
+          $jsonPath = Join-Path $env:RUNNER_TEMP 'tool-read-events.jsonl'
+          $outPath = Join-Path $env:RUNNER_TEMP 'tool-read-last.txt'
+          $launcher = Join-Path $env:BUNDLE_DIR 'codex.ps1'
+          & $launcher exec `
+            --json `
+            --skip-git-repo-check `
+            --dangerously-bypass-approvals-and-sandbox `
+            --color never `
+            -C $workspace `
+            -o $outPath `
+            "Use a shell command to read challenge.txt from the current working directory, then reply with exactly TOOL_READ_OK:$token and nothing else." `
+            > $jsonPath
+          $result = (Get-Content $outPath -Raw).Trim()
+          if ($result -ne "TOOL_READ_OK:$token") {
+            throw "Unexpected tool read result: $result"
+          }
+          if (-not (Select-String -Path $jsonPath -Pattern '"type":"command_execution"' -Quiet)) {
+            throw 'No command_execution event found in tool read JSON output'
+          }
+
+      - name: System operation test on Linux and macOS
+        if: runner.os != 'Windows'
+        shell: bash
+        env:
+          PORTABLE_TEST_API_KEY: ${{ secrets.PORTABLE_TEST_API_KEY }}
+        run: |
+          set -euo pipefail
+          workspace="$RUNNER_TEMP/system-op-workspace"
+          rm -rf "$workspace"
+          mkdir -p "$workspace"
+          token=$(uuidgen | tr '[:upper:]' '[:lower:]')
+          json_path="$RUNNER_TEMP/system-op-events.jsonl"
+          out_path="$RUNNER_TEMP/system-op-last.txt"
+          probe_path="$workspace/system_probe.txt"
+          "$BUNDLE_DIR/codex" exec \
+            --json \
+            --skip-git-repo-check \
+            --dangerously-bypass-approvals-and-sandbox \
+            --color never \
+            -C "$workspace" \
+            -o "$out_path" \
+            "Use shell commands to create a file named system_probe.txt in the current working directory containing exactly SYSTEM_PROBE_OK:$token and nothing else. After creating the file, reply with exactly SYSTEM_WRITE_OK and nothing else." \
+            < /dev/null > "$json_path"
+          test "$(tr -d '\r\n' < "$out_path")" = "SYSTEM_WRITE_OK"
+          test "$(tr -d '\r\n' < "$probe_path")" = "SYSTEM_PROBE_OK:$token"
+          grep -q '"type":"command_execution"' "$json_path"
+
+      - name: System operation test on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          PORTABLE_TEST_API_KEY: ${{ secrets.PORTABLE_TEST_API_KEY }}
+        run: |
+          $workspace = Join-Path $env:RUNNER_TEMP 'system-op-workspace'
+          Remove-Item $workspace -Recurse -Force -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Path $workspace -Force | Out-Null
+          $token = [guid]::NewGuid().ToString('N')
+          $jsonPath = Join-Path $env:RUNNER_TEMP 'system-op-events.jsonl'
+          $outPath = Join-Path $env:RUNNER_TEMP 'system-op-last.txt'
+          $probePath = Join-Path $workspace 'system_probe.txt'
+          $launcher = Join-Path $env:BUNDLE_DIR 'codex.ps1'
+          & $launcher exec `
+            --json `
+            --skip-git-repo-check `
+            --dangerously-bypass-approvals-and-sandbox `
+            --color never `
+            -C $workspace `
+            -o $outPath `
+            "Use shell commands to create a file named system_probe.txt in the current working directory containing exactly SYSTEM_PROBE_OK:$token and nothing else. After creating the file, reply with exactly SYSTEM_WRITE_OK and nothing else." `
+            > $jsonPath
+          $result = (Get-Content $outPath -Raw).Trim()
+          if ($result -ne 'SYSTEM_WRITE_OK') {
+            throw "Unexpected system operation result: $result"
+          }
+          $probe = (Get-Content $probePath -Raw).Trim()
+          if ($probe -ne "SYSTEM_PROBE_OK:$token") {
+            throw "Unexpected system probe content: $probe"
+          }
+          if (-not (Select-String -Path $jsonPath -Pattern '"type":"command_execution"' -Quiet)) {
+            throw 'No command_execution event found in system operation JSON output'
           }
