@@ -1,0 +1,73 @@
+name: Build Portable Codex
+
+on:
+  workflow_dispatch:
+    inputs:
+      codex_version:
+        description: npm version or dist-tag for @openai/codex
+        required: false
+        default: latest
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build on ${{ matrix.runner }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-22.04
+            artifact_name: codex-portable-linux
+          - runner: macos-13
+            artifact_name: codex-portable-macos
+          - runner: windows-2022
+            artifact_name: codex-portable-windows
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Build portable bundle
+        id: build
+        run: node scripts/build-portable.mjs --version "${{ inputs.codex_version }}"
+
+      - name: Archive bundle on Linux and macOS
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          set -euo pipefail
+          bundle_name="${{ steps.build.outputs.bundle_name }}"
+          cd dist
+          tar -czf "${bundle_name}.tar.gz" "${bundle_name}"
+          zip -qr "${bundle_name}.zip" "${bundle_name}"
+          shasum -a 256 "${bundle_name}.tar.gz" "${bundle_name}.zip" > "${bundle_name}.sha256"
+
+      - name: Archive bundle on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $bundleName = "${{ steps.build.outputs.bundle_name }}"
+          Compress-Archive -Path "dist/$bundleName" -DestinationPath "dist/$bundleName.zip" -Force
+          $hash = Get-FileHash "dist/$bundleName.zip" -Algorithm SHA256
+          "{0}  {1}" -f $hash.Hash.ToLower(), (Split-Path $hash.Path -Leaf) | Set-Content "dist/$bundleName.sha256"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: |
+            dist/${{ steps.build.outputs.bundle_name }}
+            dist/${{ steps.build.outputs.bundle_name }}.zip
+            dist/${{ steps.build.outputs.bundle_name }}.tar.gz
+            dist/${{ steps.build.outputs.bundle_name }}.sha256
+            dist/build-metadata.json
+          if-no-files-found: error
