@@ -9,6 +9,9 @@ on:
         default: latest
         type: string
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 permissions:
   contents: read
 
@@ -71,3 +74,165 @@ jobs:
             dist/${{ steps.build.outputs.bundle_name }}.sha256
             dist/build-metadata.json
           if-no-files-found: error
+
+  smoke-test:
+    name: Smoke test on ${{ matrix.runner }}
+    needs: build
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-22.04
+            artifact_name: codex-portable-linux
+          - runner: macos-14
+            artifact_name: codex-portable-macos
+          - runner: windows-2022
+            artifact_name: codex-portable-windows
+
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: artifact-input
+
+      - name: Extract archive on Linux and macOS
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive_path=$(find artifact-input -maxdepth 1 -name '*.tar.gz' | head -n 1)
+          test -n "$archive_path"
+          mkdir -p smoke
+          tar -xzf "$archive_path" -C smoke
+          bundle_dir=$(find smoke -mindepth 1 -maxdepth 1 -type d | head -n 1)
+          test -n "$bundle_dir"
+          echo "BUNDLE_DIR=$bundle_dir" >> "$GITHUB_ENV"
+
+      - name: Extract archive on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $archive = Get-ChildItem artifact-input -Filter *.zip | Select-Object -First 1
+          if (-not $archive) {
+            throw 'Portable zip artifact not found'
+          }
+          New-Item -ItemType Directory -Path smoke -Force | Out-Null
+          Expand-Archive -Path $archive.FullName -DestinationPath smoke -Force
+          $bundleDir = Get-ChildItem smoke -Directory | Select-Object -First 1
+          if (-not $bundleDir) {
+            throw 'Expanded bundle directory not found'
+          }
+          "BUNDLE_DIR=$($bundleDir.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Validate smoke test secrets on Linux and macOS
+        if: runner.os != 'Windows'
+        shell: bash
+        env:
+          PORTABLE_TEST_BASE_URL: ${{ secrets.PORTABLE_TEST_BASE_URL }}
+          PORTABLE_TEST_API_KEY: ${{ secrets.PORTABLE_TEST_API_KEY }}
+          PORTABLE_TEST_MODEL: ${{ secrets.PORTABLE_TEST_MODEL }}
+        run: |
+          set -euo pipefail
+          test -n "$PORTABLE_TEST_BASE_URL"
+          test -n "$PORTABLE_TEST_API_KEY"
+          test -n "$PORTABLE_TEST_MODEL"
+
+      - name: Validate smoke test secrets on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          PORTABLE_TEST_BASE_URL: ${{ secrets.PORTABLE_TEST_BASE_URL }}
+          PORTABLE_TEST_API_KEY: ${{ secrets.PORTABLE_TEST_API_KEY }}
+          PORTABLE_TEST_MODEL: ${{ secrets.PORTABLE_TEST_MODEL }}
+        run: |
+          if (-not $env:PORTABLE_TEST_BASE_URL) {
+            throw 'PORTABLE_TEST_BASE_URL is empty'
+          }
+          if (-not $env:PORTABLE_TEST_API_KEY) {
+            throw 'PORTABLE_TEST_API_KEY is empty'
+          }
+          if (-not $env:PORTABLE_TEST_MODEL) {
+            throw 'PORTABLE_TEST_MODEL is empty'
+          }
+
+      - name: Write config on Linux and macOS
+        if: runner.os != 'Windows'
+        shell: bash
+        env:
+          PORTABLE_TEST_BASE_URL: ${{ secrets.PORTABLE_TEST_BASE_URL }}
+          PORTABLE_TEST_MODEL: ${{ secrets.PORTABLE_TEST_MODEL }}
+        run: |
+          set -euo pipefail
+          export CODEX_HOME="$RUNNER_TEMP/codex-home"
+          mkdir -p "$CODEX_HOME"
+          cat > "$CODEX_HOME/config.toml" <<EOF
+          model = "${PORTABLE_TEST_MODEL}"
+          model_provider = "portable_provider"
+
+          [model_providers.portable_provider]
+          name = "Portable Provider"
+          base_url = "${PORTABLE_TEST_BASE_URL}"
+          env_key = "PORTABLE_TEST_API_KEY"
+          wire_api = "responses"
+          EOF
+          echo "CODEX_HOME=$CODEX_HOME" >> "$GITHUB_ENV"
+
+      - name: Write config on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          PORTABLE_TEST_BASE_URL: ${{ secrets.PORTABLE_TEST_BASE_URL }}
+          PORTABLE_TEST_MODEL: ${{ secrets.PORTABLE_TEST_MODEL }}
+        run: |
+          $codexHome = Join-Path $env:RUNNER_TEMP 'codex-home'
+          New-Item -ItemType Directory -Path $codexHome -Force | Out-Null
+          @"
+          model = "$env:PORTABLE_TEST_MODEL"
+          model_provider = "portable_provider"
+
+          [model_providers.portable_provider]
+          name = "Portable Provider"
+          base_url = "$env:PORTABLE_TEST_BASE_URL"
+          env_key = "PORTABLE_TEST_API_KEY"
+          wire_api = "responses"
+          "@ | Set-Content -Path (Join-Path $codexHome 'config.toml')
+          "CODEX_HOME=$codexHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Smoke test on Linux and macOS
+        if: runner.os != 'Windows'
+        shell: bash
+        env:
+          PORTABLE_TEST_API_KEY: ${{ secrets.PORTABLE_TEST_API_KEY }}
+        run: |
+          set -euo pipefail
+          "$BUNDLE_DIR/codex" --version
+          "$BUNDLE_DIR/codex" exec \
+            --skip-git-repo-check \
+            --dangerously-bypass-approvals-and-sandbox \
+            --color never \
+            -C "$RUNNER_TEMP" \
+            -o "$RUNNER_TEMP/portable-last.txt" \
+            'Reply with exactly PORTABLE_OK and stop.' < /dev/null
+          test "$(tr -d '\r\n' < "$RUNNER_TEMP/portable-last.txt")" = "PORTABLE_OK"
+
+      - name: Smoke test on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          PORTABLE_TEST_API_KEY: ${{ secrets.PORTABLE_TEST_API_KEY }}
+        run: |
+          $launcher = Join-Path $env:BUNDLE_DIR 'codex.ps1'
+          & $launcher --version
+          & $launcher exec `
+            --skip-git-repo-check `
+            --dangerously-bypass-approvals-and-sandbox `
+            --color never `
+            -C $env:RUNNER_TEMP `
+            -o (Join-Path $env:RUNNER_TEMP 'portable-last.txt') `
+            'Reply with exactly PORTABLE_OK and stop.'
+          $result = (Get-Content (Join-Path $env:RUNNER_TEMP 'portable-last.txt') -Raw).Trim()
+          if ($result -ne 'PORTABLE_OK') {
+            throw "Unexpected smoke test result: $result"
+          }

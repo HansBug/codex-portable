@@ -20,6 +20,16 @@ Each bundle contains:
 - a short portable usage guide
 - repository license and metadata
 
+## Smoke test stage
+
+After the build job finishes, the workflow downloads the generated artifact in a second stage, extracts it on a fresh runner, writes a minimal `config.toml`, and runs a real `codex exec` call against the configured API endpoint.
+
+The smoke test expects these repository secrets:
+
+- `PORTABLE_TEST_BASE_URL`
+- `PORTABLE_TEST_API_KEY`
+- `PORTABLE_TEST_MODEL`
+
 ## Triggering a build
 
 Use the `Build Portable Codex` workflow and optionally provide a `codex_version` input.
