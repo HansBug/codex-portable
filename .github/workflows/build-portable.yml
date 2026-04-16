@@ -22,7 +22,7 @@ jobs:
         include:
           - runner: ubuntu-22.04
             artifact_name: codex-portable-linux
-          - runner: macos-13
+          - runner: macos-14
             artifact_name: codex-portable-macos
           - runner: windows-2022
             artifact_name: codex-portable-windows

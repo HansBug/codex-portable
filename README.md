@@ -9,7 +9,7 @@ This repository does not commit Codex binaries. Instead, the workflow installs t
 Each run produces one artifact per platform:
 
 - `ubuntu-22.04` -> Linux x64 portable bundle
-- `macos-13` -> macOS x64 portable bundle
+- `macos-14` -> macOS arm64 portable bundle
 - `windows-2022` -> Windows x64 portable bundle
 
 Each bundle contains:

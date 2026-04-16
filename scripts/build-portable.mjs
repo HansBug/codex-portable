@@ -301,6 +301,16 @@ function readJson(filename) {
 }
 
 function runCommand(command, commandArgs, cwd) {
+  if (process.platform === "win32") {
+    const wrappedArgs = ["/d", "/s", "/c", command, ...commandArgs];
+    console.log(`Running: cmd.exe ${wrappedArgs.join(" ")}`);
+    execFileSync("cmd.exe", wrappedArgs, {
+      cwd,
+      stdio: "inherit",
+    });
+    return;
+  }
+
   console.log(`Running: ${command} ${commandArgs.join(" ")}`);
   execFileSync(command, commandArgs, {
     cwd,
