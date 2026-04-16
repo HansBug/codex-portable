@@ -8,6 +8,9 @@ on:
         required: false
         default: latest
         type: string
+  release:
+    types:
+      - published
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
@@ -16,8 +19,42 @@ permissions:
   contents: read
 
 jobs:
+  prepare:
+    name: Prepare build inputs
+    runs-on: ubuntu-22.04
+    outputs:
+      codex_version: ${{ steps.resolve.outputs.codex_version }}
+      release_tag: ${{ steps.resolve.outputs.release_tag }}
+      publish_to_release: ${{ steps.resolve.outputs.publish_to_release }}
+
+    steps:
+      - name: Resolve build context
+        id: resolve
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ "${{ github.event_name }}" = "release" ]; then
+            release_tag="${{ github.event.release.tag_name }}"
+            codex_version="${release_tag#v}"
+            publish_to_release=true
+          else
+            release_tag=""
+            codex_version="${{ inputs.codex_version }}"
+            publish_to_release=false
+          fi
+
+          if [ -z "$codex_version" ]; then
+            codex_version=latest
+          fi
+
+          echo "codex_version=$codex_version" >> "$GITHUB_OUTPUT"
+          echo "release_tag=$release_tag" >> "$GITHUB_OUTPUT"
+          echo "publish_to_release=$publish_to_release" >> "$GITHUB_OUTPUT"
+
   build:
     name: Build on ${{ matrix.runner }}
+    needs: prepare
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
@@ -41,7 +78,7 @@ jobs:
 
       - name: Build portable bundle
         id: build
-        run: node scripts/build-portable.mjs --version "${{ inputs.codex_version }}"
+        run: node scripts/build-portable.mjs --version "${{ needs.prepare.outputs.codex_version }}"
 
       - name: Archive bundle on Linux and macOS
         if: runner.os != 'Windows'
@@ -391,3 +428,42 @@ jobs:
           if (-not (Select-String -Path $jsonPath -Pattern '"type":"command_execution"' -Quiet)) {
             throw 'No command_execution event found in system operation JSON output'
           }
+
+  publish-release-assets:
+    name: Publish release assets
+    needs:
+      - prepare
+      - build
+      - smoke-test
+    if: needs.prepare.outputs.publish_to_release == 'true'
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+
+      - name: Collect archives for upload
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p upload
+          while IFS= read -r -d '' file; do
+            cp "$file" upload/
+          done < <(find release-assets -type f \( -name '*.zip' -o -name '*.tar.gz' -o -name '*.sha256' \) -print0)
+
+          file_count=$(find upload -maxdepth 1 -type f | wc -l | tr -d ' ')
+          test "$file_count" -gt 0
+          ls -1 upload
+
+      - name: Upload assets to GitHub release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.prepare.outputs.release_tag }}
+        run: |
+          set -euo pipefail
+          gh release upload "$RELEASE_TAG" upload/* --clobber --repo "$GITHUB_REPOSITORY"

@@ -37,12 +37,46 @@ The smoke test expects these repository secrets:
 - `PORTABLE_TEST_API_KEY`
 - `PORTABLE_TEST_MODEL`
 
-## Triggering a build
+## Workflows
 
-Use the `Build Portable Codex` workflow and optionally provide a `codex_version` input.
+### Build Portable Codex
 
-- `latest` builds the latest published `@openai/codex`
-- an explicit version such as `0.121.0` pins the package version
+Use the `Build Portable Codex` workflow to run an on-demand build, or let it run automatically when this repository publishes a GitHub release.
+
+- `workflow_dispatch` builds artifacts and runs smoke tests
+- `release.published` builds artifacts, runs smoke tests, and uploads the generated archives to the matching GitHub release with overwrite enabled
+
+Optional `workflow_dispatch` input:
+
+- `codex_version=latest` builds the latest published `@openai/codex`
+- `codex_version=0.121.0` pins the package version
+
+### Watch Upstream Codex Release
+
+The `Watch Upstream Codex Release` workflow runs every 3 hours and also supports `workflow_dispatch`.
+
+It:
+
+- resolves the latest stable `@openai/codex` version from npm, or uses the manually provided version
+- fetches the matching upstream GitHub release from `openai/codex`
+- uses the configured model endpoint to generate short release highlights
+- creates a repository release tagged as `vX.Y.Z`
+- relies on the downstream `release.published` trigger to build and attach portable artifacts
+
+This watcher requires one extra repository secret:
+
+- `RELEASE_WORKFLOW_TOKEN`
+
+Use a PAT or fine-grained token with permission to create releases in this repository. This is required because the default `GITHUB_TOKEN` does not trigger downstream workflows when it creates a release.
+
+The smoke tests and the release-note generation both expect these repository secrets:
+
+- `PORTABLE_TEST_BASE_URL`
+- `PORTABLE_TEST_API_KEY`
+- `PORTABLE_TEST_MODEL`
+
+## Manual build usage
+Use the `Build Portable Codex` workflow and optionally provide a `codex_version` input if you want artifacts without creating a release.
 
 ## Artifact behavior
 

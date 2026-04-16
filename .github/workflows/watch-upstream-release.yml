@@ -1,0 +1,247 @@
+name: Watch Upstream Codex Release
+
+on:
+  schedule:
+    - cron: "0 */3 * * *"
+  workflow_dispatch:
+    inputs:
+      codex_version:
+        description: Exact @openai/codex version to publish. Defaults to the latest npm release.
+        required: false
+        default: ""
+        type: string
+      overwrite_existing:
+        description: Delete and recreate the release if vX.Y.Z already exists.
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+concurrency:
+  group: watch-upstream-release
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    name: Create repository release for a new Codex version
+    runs-on: ubuntu-22.04
+    env:
+      GH_TOKEN: ${{ secrets.RELEASE_WORKFLOW_TOKEN }}
+      PORTABLE_TEST_BASE_URL: ${{ secrets.PORTABLE_TEST_BASE_URL }}
+      PORTABLE_TEST_API_KEY: ${{ secrets.PORTABLE_TEST_API_KEY }}
+      PORTABLE_TEST_MODEL: ${{ secrets.PORTABLE_TEST_MODEL }}
+
+    steps:
+      - name: Validate required secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$GH_TOKEN" || {
+            echo "RELEASE_WORKFLOW_TOKEN is required because GITHUB_TOKEN cannot trigger downstream release workflows." >&2
+            exit 1
+          }
+          test -n "$PORTABLE_TEST_BASE_URL"
+          test -n "$PORTABLE_TEST_API_KEY"
+          test -n "$PORTABLE_TEST_MODEL"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Resolve target version
+        id: version
+        shell: bash
+        env:
+          REQUESTED_VERSION: ${{ inputs.codex_version }}
+        run: |
+          set -euo pipefail
+
+          requested="${REQUESTED_VERSION:-}"
+          if [ -z "$requested" ] || [ "$requested" = "latest" ]; then
+            version="$(npm view @openai/codex version)"
+          else
+            version="$(npm view @openai/codex@"$requested" version)"
+          fi
+
+          if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Resolved version is not a stable semver: $version" >&2
+            exit 1
+          fi
+
+          echo "codex_version=$version" >> "$GITHUB_OUTPUT"
+          echo "release_tag=v$version" >> "$GITHUB_OUTPUT"
+          echo "upstream_tag=rust-v$version" >> "$GITHUB_OUTPUT"
+          echo "npm_url=https://www.npmjs.com/package/@openai/codex/v/$version" >> "$GITHUB_OUTPUT"
+
+      - name: Fetch upstream release metadata
+        id: upstream
+        shell: bash
+        env:
+          UPSTREAM_TAG: ${{ steps.version.outputs.upstream_tag }}
+        run: |
+          set -euo pipefail
+
+          release_json="$RUNNER_TEMP/upstream-release.json"
+          gh api "repos/openai/codex/releases/tags/$UPSTREAM_TAG" > "$release_json"
+
+          if [ "$(jq -r '.draft' "$release_json")" != "false" ]; then
+            echo "Upstream release $UPSTREAM_TAG is still a draft" >&2
+            exit 1
+          fi
+
+          if [ "$(jq -r '.prerelease' "$release_json")" != "false" ]; then
+            echo "Upstream release $UPSTREAM_TAG is a prerelease" >&2
+            exit 1
+          fi
+
+          compare_url="$(jq -r '.body // ""' "$release_json" | grep -Eo 'https://github\.com/openai/codex/compare/[^[:space:])"]+' | head -n 1 || true)"
+
+          echo "release_json=$release_json" >> "$GITHUB_OUTPUT"
+          echo "upstream_name=$(jq -r '.name // ""' "$release_json")" >> "$GITHUB_OUTPUT"
+          echo "upstream_url=$(jq -r '.html_url' "$release_json")" >> "$GITHUB_OUTPUT"
+          echo "compare_url=$compare_url" >> "$GITHUB_OUTPUT"
+
+      - name: Prepare release target
+        id: target
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ steps.version.outputs.release_tag }}
+          OVERWRITE_EXISTING: ${{ inputs.overwrite_existing }}
+        run: |
+          set -euo pipefail
+
+          overwrite="${OVERWRITE_EXISTING:-false}"
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            exists=true
+          else
+            exists=false
+          fi
+
+          if [ "$exists" = true ] && [ "$overwrite" = true ]; then
+            gh release delete "$RELEASE_TAG" --cleanup-tag -y --repo "$GITHUB_REPOSITORY"
+            exists=false
+          fi
+
+          should_create=true
+          if [ "$exists" = true ]; then
+            should_create=false
+          fi
+
+          echo "overwrite=$overwrite" >> "$GITHUB_OUTPUT"
+          echo "should_create=$should_create" >> "$GITHUB_OUTPUT"
+
+      - name: Generate release notes with Codex
+        id: notes
+        if: steps.target.outputs.should_create == 'true'
+        shell: bash
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.codex_version }}
+          NPM_URL: ${{ steps.version.outputs.npm_url }}
+          RELEASE_JSON: ${{ steps.upstream.outputs.release_json }}
+          UPSTREAM_NAME: ${{ steps.upstream.outputs.upstream_name }}
+          UPSTREAM_URL: ${{ steps.upstream.outputs.upstream_url }}
+          COMPARE_URL: ${{ steps.upstream.outputs.compare_url }}
+        run: |
+          set -euo pipefail
+
+          workdir="$RUNNER_TEMP/release-notes"
+          export CODEX_HOME="$RUNNER_TEMP/codex-home"
+          mkdir -p "$workdir" "$CODEX_HOME"
+
+          cat > "$CODEX_HOME/config.toml" <<EOF
+          model = "${PORTABLE_TEST_MODEL}"
+          model_provider = "portable_provider"
+
+          [model_providers.portable_provider]
+          name = "Portable Provider"
+          base_url = "${PORTABLE_TEST_BASE_URL}"
+          env_key = "PORTABLE_TEST_API_KEY"
+          wire_api = "responses"
+          EOF
+
+          body_file="$workdir/upstream-body.md"
+          jq -r '.body // ""' "$RELEASE_JSON" > "$body_file"
+
+          prompt_file="$workdir/prompt.txt"
+          cat > "$prompt_file" <<EOF
+          Write exactly 3 markdown bullet points that summarize the most important user-facing changes in OpenAI Codex CLI ${RELEASE_VERSION}.
+
+          Requirements:
+          - Use only the source material below.
+          - Keep each bullet under 18 words.
+          - Focus on concrete changes, fixes, or new capabilities.
+          - Do not mention this repository, GitHub Actions, or portable packaging.
+          - Do not add headings, numbering, prose, or links.
+
+          Upstream release title: ${UPSTREAM_NAME}
+          Upstream release URL: ${UPSTREAM_URL}
+          Upstream compare URL: ${COMPARE_URL:-N/A}
+
+          Upstream release notes:
+          $(cat "$body_file")
+          EOF
+
+          prompt="$(cat "$prompt_file")"
+          highlights_file="$workdir/highlights.md"
+          notes_file="$workdir/release-notes.md"
+
+          npx -y @openai/codex@"$RELEASE_VERSION" exec \
+            --skip-git-repo-check \
+            --dangerously-bypass-approvals-and-sandbox \
+            --color never \
+            -C "$workdir" \
+            -o "$highlights_file" \
+            "$prompt" < /dev/null
+
+          grep -Eq '^[-*] ' "$highlights_file"
+
+          {
+            printf 'Portable bundles for OpenAI Codex CLI `%s`.\n\n' "$RELEASE_VERSION"
+            cat "$highlights_file"
+            printf '\nSource links:\n'
+            printf -- '- Upstream release: %s\n' "$UPSTREAM_URL"
+            if [ -n "${COMPARE_URL:-}" ]; then
+              printf -- '- Compare: %s\n' "$COMPARE_URL"
+            fi
+            printf -- '- npm package: %s\n' "$NPM_URL"
+            printf '\nPortable artifacts for Linux, macOS, and Windows are attached after the release smoke tests pass.\n'
+          } > "$notes_file"
+
+          echo "notes_file=$notes_file" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub release with retry
+        if: steps.target.outputs.should_create == 'true'
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ steps.version.outputs.release_tag }}
+          RELEASE_VERSION: ${{ steps.version.outputs.codex_version }}
+          NOTES_FILE: ${{ steps.notes.outputs.notes_file }}
+        run: |
+          set -euo pipefail
+
+          for attempt in 1 2 3; do
+            if gh release create "$RELEASE_TAG" \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "Codex Portable $RELEASE_VERSION" \
+              --notes-file "$NOTES_FILE"; then
+              exit 0
+            fi
+
+            gh release delete "$RELEASE_TAG" --cleanup-tag -y --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1 || true
+            sleep $((attempt * 5))
+          done
+
+          echo "Failed to create release $RELEASE_TAG after multiple attempts" >&2
+          exit 1
+
+      - name: Report skipped release
+        if: steps.target.outputs.should_create != 'true'
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ steps.version.outputs.release_tag }}
+        run: |
+          set -euo pipefail
+          echo "Release $RELEASE_TAG already exists; skipping creation."
