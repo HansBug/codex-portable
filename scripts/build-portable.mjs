@@ -157,7 +157,7 @@ if (process.platform === "win32") {
 
   const psLauncher = [
     "$ErrorActionPreference = 'Stop'",
-    "$scriptDir = Split-Path -LiteralPath $MyInvocation.MyCommand.Path -Parent",
+    "$scriptDir = Split-Path -Path $MyInvocation.MyCommand.Path -Parent",
     "$binDir = Join-Path $scriptDir 'bin'",
     "$env:PATH = \"$binDir;$env:PATH\"",
     "& (Join-Path $binDir 'codex-real.exe') @args",
