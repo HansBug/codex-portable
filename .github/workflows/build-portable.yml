@@ -512,3 +512,68 @@ jobs:
         run: |
           set -euo pipefail
           gh release upload "$RELEASE_TAG" upload/* --clobber --repo "$GITHUB_REPOSITORY"
+
+  update-readme:
+    name: Refresh generated README files
+    needs:
+      - prepare
+      - publish-release-assets
+    if: needs.prepare.outputs.publish_to_release == 'true'
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out main branch
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Set up README rendering environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m venv "$RUNNER_TEMP/readme-venv"
+          . "$RUNNER_TEMP/readme-venv/bin/activate"
+          python -m pip install --disable-pip-version-check --quiet jinja2
+
+      - name: Fetch published release metadata
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.prepare.outputs.release_tag }}
+        run: |
+          set -euo pipefail
+          gh release view "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --json tagName,url,publishedAt,assets \
+            > "$RUNNER_TEMP/release.json"
+
+      - name: Render README files from templates
+        shell: bash
+        run: |
+          set -euo pipefail
+          . "$RUNNER_TEMP/readme-venv/bin/activate"
+          python scripts/render-readme.py \
+            --repo "$GITHUB_REPOSITORY" \
+            --release-json "$RUNNER_TEMP/release.json" \
+            --output-root "$GITHUB_WORKSPACE"
+
+      - name: Commit refreshed README files
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ needs.prepare.outputs.release_tag }}
+        run: |
+          set -euo pipefail
+
+          if git diff --quiet -- README.md README_zh.md; then
+            echo "README files already match $RELEASE_TAG; nothing to commit."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md README_zh.md
+          git commit -m "Refresh README for $RELEASE_TAG [skip ci]"
+          git push origin HEAD:main
