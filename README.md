@@ -46,7 +46,7 @@ tar -xzf "$ASSET" -C "$HOME/.local/lib"
 ln -sfn "$HOME/.local/lib/${ASSET%.tar.gz}" "$HOME/.local/lib/codex-portable"
 grep -qxF 'export PATH="$HOME/.local/lib/codex-portable:$PATH"' "$HOME/.bashrc" || echo 'export PATH="$HOME/.local/lib/codex-portable:$PATH"' >> "$HOME/.bashrc"
 
-source "$HOME/.bashrc"
+export PATH="$HOME/.local/lib/codex-portable:$PATH"
 codex --version
 ```
 
@@ -64,7 +64,7 @@ tar -xzf "$ASSET" -C "$HOME/.local/lib"
 ln -sfn "$HOME/.local/lib/${ASSET%.tar.gz}" "$HOME/.local/lib/codex-portable"
 grep -qxF 'export PATH="$HOME/.local/lib/codex-portable:$PATH"' "$HOME/.zshrc" || echo 'export PATH="$HOME/.local/lib/codex-portable:$PATH"' >> "$HOME/.zshrc"
 
-source "$HOME/.zshrc"
+export PATH="$HOME/.local/lib/codex-portable:$PATH"
 codex --version
 ```
 
@@ -178,14 +178,14 @@ For Linux:
 
 ```bash
 echo 'export PATH="/path/to/codex-portable-x86_64-unknown-linux-musl-vX.Y.Z:$PATH"' >> "$HOME/.bashrc"
-source "$HOME/.bashrc"
+export PATH="/path/to/codex-portable-x86_64-unknown-linux-musl-vX.Y.Z:$PATH"
 ```
 
 For macOS:
 
 ```zsh
 echo 'export PATH="/path/to/codex-portable-aarch64-apple-darwin-vX.Y.Z:$PATH"' >> "$HOME/.zshrc"
-source "$HOME/.zshrc"
+export PATH="/path/to/codex-portable-aarch64-apple-darwin-vX.Y.Z:$PATH"
 ```
 
 On Windows, add the extracted folder in System Settings or with PowerShell:
