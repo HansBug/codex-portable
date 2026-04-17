@@ -61,11 +61,17 @@ jobs:
       matrix:
         include:
           - runner: ubuntu-22.04
-            artifact_name: codex-portable-linux
+            artifact_name: codex-portable-linux-x64
+          - runner: ubuntu-22.04-arm
+            artifact_name: codex-portable-linux-arm64
+          - runner: macos-15-intel
+            artifact_name: codex-portable-macos-x64
           - runner: macos-14
-            artifact_name: codex-portable-macos
+            artifact_name: codex-portable-macos-arm64
           - runner: windows-2022
-            artifact_name: codex-portable-windows
+            artifact_name: codex-portable-windows-x64
+          - runner: windows-11-arm
+            artifact_name: codex-portable-windows-arm64
 
     steps:
       - name: Check out repository
@@ -80,8 +86,19 @@ jobs:
         id: build
         run: node scripts/build-portable.mjs --version "${{ needs.prepare.outputs.codex_version }}"
 
-      - name: Archive bundle on Linux and macOS
-        if: runner.os != 'Windows'
+      - name: Archive bundle on Linux
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          bundle_name="${{ steps.build.outputs.bundle_name }}"
+          cd dist
+          tar -czf "${bundle_name}.tar.gz" "${bundle_name}"
+          zip -qr "${bundle_name}.zip" "${bundle_name}"
+          sha256sum "${bundle_name}.tar.gz" "${bundle_name}.zip" > "${bundle_name}.sha256"
+
+      - name: Archive bundle on macOS
+        if: runner.os == 'macOS'
         shell: bash
         run: |
           set -euo pipefail
@@ -100,17 +117,35 @@ jobs:
           $hash = Get-FileHash "dist/$bundleName.zip" -Algorithm SHA256
           "{0}  {1}" -f $hash.Hash.ToLower(), (Split-Path $hash.Path -Leaf) | Set-Content "dist/$bundleName.sha256"
 
+      - name: Stage artifact payload on Linux and macOS
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          set -euo pipefail
+          bundle_name="${{ steps.build.outputs.bundle_name }}"
+          mkdir -p artifact-output
+          cp "dist/${bundle_name}.tar.gz" artifact-output/
+          cp "dist/${bundle_name}.zip" artifact-output/
+          cp "dist/${bundle_name}.sha256" artifact-output/
+          cp dist/build-metadata.json artifact-output/
+
+      - name: Stage artifact payload on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $bundleName = "${{ steps.build.outputs.bundle_name }}"
+          New-Item -ItemType Directory -Path artifact-output -Force | Out-Null
+          Copy-Item "dist/$bundleName.zip" artifact-output/
+          Copy-Item "dist/$bundleName.sha256" artifact-output/
+          Copy-Item "dist/build-metadata.json" artifact-output/
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
-          path: |
-            dist/${{ steps.build.outputs.bundle_name }}
-            dist/${{ steps.build.outputs.bundle_name }}.zip
-            dist/${{ steps.build.outputs.bundle_name }}.tar.gz
-            dist/${{ steps.build.outputs.bundle_name }}.sha256
-            dist/build-metadata.json
+          path: artifact-output/*
           if-no-files-found: error
+          retention-days: 1
 
   smoke-test:
     name: Smoke test on ${{ matrix.runner }}
@@ -121,11 +156,17 @@ jobs:
       matrix:
         include:
           - runner: ubuntu-22.04
-            artifact_name: codex-portable-linux
+            artifact_name: codex-portable-linux-x64
+          - runner: ubuntu-22.04-arm
+            artifact_name: codex-portable-linux-arm64
+          - runner: macos-15-intel
+            artifact_name: codex-portable-macos-x64
           - runner: macos-14
-            artifact_name: codex-portable-macos
+            artifact_name: codex-portable-macos-arm64
           - runner: windows-2022
-            artifact_name: codex-portable-windows
+            artifact_name: codex-portable-windows-x64
+          - runner: windows-11-arm
+            artifact_name: codex-portable-windows-arm64
 
     steps:
       - name: Download build artifact
@@ -288,6 +329,7 @@ jobs:
           test -x "$BUNDLE_DIR/codex"
           test -f "$BUNDLE_DIR/bin/codex-real"
           test -x "$BUNDLE_DIR/bin/codex-real"
+          test -f "$BUNDLE_DIR/bin/rg"
 
       - name: Verify bundle layout on Windows
         if: runner.os == 'Windows'
@@ -303,7 +345,10 @@ jobs:
             (Join-Path $env:BUNDLE_DIR 'portable-metadata.json'),
             (Join-Path $env:BUNDLE_DIR 'codex.cmd'),
             (Join-Path $env:BUNDLE_DIR 'codex.ps1'),
-            (Join-Path (Join-Path $env:BUNDLE_DIR 'bin') 'codex-real.exe')
+            (Join-Path (Join-Path $env:BUNDLE_DIR 'bin') 'codex-real.exe'),
+            (Join-Path (Join-Path $env:BUNDLE_DIR 'bin') 'rg.exe'),
+            (Join-Path (Join-Path $env:BUNDLE_DIR 'bin') 'codex-command-runner.exe'),
+            (Join-Path (Join-Path $env:BUNDLE_DIR 'bin') 'codex-windows-sandbox-setup.exe')
           )) {
             if (-not (Test-Path $path)) {
               throw "Expected bundle path is missing: $path"

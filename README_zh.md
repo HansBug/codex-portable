@@ -10,6 +10,15 @@ Release 页面：
 
 - `https://github.com/HansBug/codex-portable/releases`
 
+当前支持发布的目标：
+
+- Linux x64：`x86_64-unknown-linux-musl`
+- Linux arm64：`aarch64-unknown-linux-musl`
+- macOS x64：`x86_64-apple-darwin`
+- macOS arm64：`aarch64-apple-darwin`
+- Windows x64：`x86_64-pc-windows-msvc`
+- Windows arm64：`aarch64-pc-windows-msvc`
+
 ## 先选安装路径
 
 你可以按场景选择：
@@ -20,6 +29,8 @@ Release 页面：
 ## Fast install
 
 下面的命令默认安装最新 release。如果你想固定旧版本，把自动获取到的 tag 换成指定值，例如 `v0.120.0`。
+
+下面每个平台只展示一个最常见架构的命令。其他已支持架构的安装步骤相同，只需要把资源文件名替换成上面列表对应的那个即可。
 
 ### Linux x64（bash）
 
@@ -119,8 +130,11 @@ codex.cmd --version
 Linux 和 macOS 推荐优先下载 `tar.gz`，因为它能保留可执行权限。
 
 - Linux x64：`codex-portable-x86_64-unknown-linux-musl-vX.Y.Z.tar.gz`
+- Linux arm64：`codex-portable-aarch64-unknown-linux-musl-vX.Y.Z.tar.gz`
+- macOS x64：`codex-portable-x86_64-apple-darwin-vX.Y.Z.tar.gz`
 - macOS arm64：`codex-portable-aarch64-apple-darwin-vX.Y.Z.tar.gz`
 - Windows x64：`codex-portable-x86_64-pc-windows-msvc-vX.Y.Z.zip`
+- Windows arm64：`codex-portable-aarch64-pc-windows-msvc-vX.Y.Z.zip`
 - 可选校验文件：对应的 `*.sha256`
 
 ### 3. 解压并启动
@@ -286,6 +300,7 @@ set ALL_PROXY=socks5://127.0.0.1:1080
 
 - 启动器：`codex`、`codex.cmd` 或 `codex.ps1`
 - 官方包里的原生 Codex 可执行文件
+- 如果 upstream 提供，还会包含 Windows 辅助可执行文件
 - 自带的 `rg`
 - 一份简短的 portable 说明
 - 仓库许可证和元数据
@@ -304,6 +319,15 @@ bundle 不包含用户数据，例如 `~/.codex`、`auth.json`、历史会话、
 
 - `workflow_dispatch`：手动构建
 - `release.published`：release 发布后自动构建并上传归档文件
+
+构建矩阵使用的 runner：
+
+- `ubuntu-22.04`：Linux x64
+- `ubuntu-22.04-arm`：Linux arm64
+- `macos-15-intel`：macOS x64
+- `macos-14`：macOS arm64
+- `windows-2022`：Windows x64
+- `windows-11-arm`：Windows arm64
 
 手动输入参数：
 
@@ -333,7 +357,9 @@ bundle 不包含用户数据，例如 `~/.codex`、`auth.json`、历史会话、
 
 ## Smoke tests
 
-每次构建完成后，GitHub Actions 都会把生成的 artifact 下载到全新 runner，写入最小 `config.toml`，并对真实模型接口执行 `codex exec` 验证。
+每次构建完成后，GitHub Actions 都会把生成的归档文件下载到全新 runner，写入最小 `config.toml`，并对真实模型接口执行 `codex exec` 验证。
+
+smoke-test 阶段不会再次安装 Node.js、npm 或 Codex，只会解压上一阶段产出的 portable 包并直接启动它。
 
 当前 smoke test 会检查：
 

@@ -112,7 +112,8 @@ if (targetTriples.length !== 1) {
 const targetTriple = targetTriples[0];
 const tripleRoot = path.join(vendorRoot, targetTriple);
 const codexBinaryName = process.platform === "win32" ? "codex.exe" : "codex";
-const sourceBinaryPath = path.join(tripleRoot, "codex", codexBinaryName);
+const sourceCodexDir = path.join(tripleRoot, "codex");
+const sourceBinaryPath = path.join(sourceCodexDir, codexBinaryName);
 const sourcePathDir = path.join(tripleRoot, "path");
 
 if (!existsSync(sourceBinaryPath)) {
@@ -127,22 +128,10 @@ const bundleBinRoot = path.join(bundleRoot, "bin");
 mkdirSync(bundleBinRoot, { recursive: true });
 
 const bundledBinaryName = process.platform === "win32" ? "codex-real.exe" : "codex-real";
-const bundledBinaryPath = path.join(bundleBinRoot, bundledBinaryName);
-cpSync(sourceBinaryPath, bundledBinaryPath);
-if (process.platform !== "win32") {
-  chmodSync(bundledBinaryPath, 0o755);
-}
-
-if (existsSync(sourcePathDir)) {
-  for (const entry of readdirSync(sourcePathDir)) {
-    const sourceEntry = path.join(sourcePathDir, entry);
-    const targetEntry = path.join(bundleBinRoot, entry);
-    cpSync(sourceEntry, targetEntry, { recursive: true });
-    if (process.platform !== "win32" && statSync(targetEntry).isFile()) {
-      chmodSync(targetEntry, 0o755);
-    }
-  }
-}
+copyDirectoryContents(sourceCodexDir, bundleBinRoot, {
+  rename: (entry) => (entry === codexBinaryName ? bundledBinaryName : entry),
+});
+copyDirectoryContents(sourcePathDir, bundleBinRoot);
 
 if (process.platform === "win32") {
   const cmdLauncher = [
@@ -229,6 +218,7 @@ function buildPortableReadme({ bundleName, targetTriple, resolvedVersion }) {
       "Contents",
       "- codex.cmd / codex.ps1: launcher scripts",
       "- bin/codex-real.exe: native Codex binary",
+      "- bin/*.exe: bundled helper executables when provided by upstream",
       "- bin/rg.exe: bundled ripgrep executable when provided by upstream",
       "",
       "Usage",
@@ -279,6 +269,23 @@ function buildPortableReadme({ bundleName, targetTriple, resolvedVersion }) {
     "- Credentials can be supplied with interactive login or provider-specific environment variables.",
     "",
   ].join("\n");
+}
+
+function copyDirectoryContents(sourceDir, targetDir, options = {}) {
+  if (!existsSync(sourceDir)) {
+    return;
+  }
+
+  const rename = options.rename ?? ((entry) => entry);
+  for (const entry of readdirSync(sourceDir)) {
+    const sourceEntry = path.join(sourceDir, entry);
+    const renamedEntry = rename(entry);
+    const targetEntry = path.join(targetDir, renamedEntry);
+    cpSync(sourceEntry, targetEntry, { recursive: true });
+    if (process.platform !== "win32" && statSync(targetEntry).isFile()) {
+      chmodSync(targetEntry, 0o755);
+    }
+  }
 }
 
 function parseArgs(argv) {

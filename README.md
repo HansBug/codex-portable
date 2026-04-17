@@ -10,6 +10,15 @@ Release page:
 
 - `https://github.com/HansBug/codex-portable/releases`
 
+Supported release targets:
+
+- Linux x64: `x86_64-unknown-linux-musl`
+- Linux arm64: `aarch64-unknown-linux-musl`
+- macOS x64: `x86_64-apple-darwin`
+- macOS arm64: `aarch64-apple-darwin`
+- Windows x64: `x86_64-pc-windows-msvc`
+- Windows arm64: `aarch64-pc-windows-msvc`
+
 ## Start here
 
 Pick one path:
@@ -20,6 +29,8 @@ Pick one path:
 ## Fast install
 
 These commands download the latest portable release. To pin an older release, replace the auto-detected tag with a fixed tag such as `v0.120.0`.
+
+The command blocks below show one common architecture per platform. For the other supported architectures, keep the same steps and replace only the asset name with one from the list above.
 
 ### Linux x64 (bash)
 
@@ -119,8 +130,11 @@ Use this when the target machine has no internet access, or when you prefer to d
 Prefer `tar.gz` on Linux and macOS because it preserves executable permissions.
 
 - Linux x64: `codex-portable-x86_64-unknown-linux-musl-vX.Y.Z.tar.gz`
+- Linux arm64: `codex-portable-aarch64-unknown-linux-musl-vX.Y.Z.tar.gz`
+- macOS x64: `codex-portable-x86_64-apple-darwin-vX.Y.Z.tar.gz`
 - macOS arm64: `codex-portable-aarch64-apple-darwin-vX.Y.Z.tar.gz`
 - Windows x64: `codex-portable-x86_64-pc-windows-msvc-vX.Y.Z.zip`
+- Windows arm64: `codex-portable-aarch64-pc-windows-msvc-vX.Y.Z.zip`
 - Optional checksum files: matching `*.sha256`
 
 ### 3. Extract and start
@@ -286,6 +300,7 @@ Each bundle contains:
 
 - a launcher: `codex`, `codex.cmd`, or `codex.ps1`
 - the native Codex binary from the official package
+- bundled Windows helper executables when upstream ships them
 - the bundled `rg` executable
 - a short portable usage note
 - repository license and metadata
@@ -304,6 +319,15 @@ The Linux `Fast install`, `Manual / offline install`, and `Basic config` flows i
 
 - `workflow_dispatch` for manual builds
 - `release.published` for release builds that also upload archives to the GitHub release
+
+Build matrix targets:
+
+- `ubuntu-22.04` for Linux x64
+- `ubuntu-22.04-arm` for Linux arm64
+- `macos-15-intel` for macOS x64
+- `macos-14` for macOS arm64
+- `windows-2022` for Windows x64
+- `windows-11-arm` for Windows arm64
 
 Manual input:
 
@@ -333,7 +357,9 @@ Required repository secrets:
 
 ## Smoke tests
 
-After each build, GitHub Actions downloads the generated artifact on a fresh runner, writes a minimal `config.toml`, and runs real `codex exec` checks against the configured API endpoint.
+After each build, GitHub Actions downloads the generated archive on a fresh runner, writes a minimal `config.toml`, and runs real `codex exec` checks against the configured API endpoint.
+
+The smoke-test job does not install Node.js, npm, or Codex again. It only extracts the portable package built in the previous stage and starts that bundle directly.
 
 The smoke tests verify:
 
