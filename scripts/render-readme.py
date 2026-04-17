@@ -182,6 +182,7 @@ def create_environment() -> Environment:
 
 
 def render_readmes(context: dict[str, Any], output_root: Path) -> None:
+    output_root.mkdir(parents=True, exist_ok=True)
     env = create_environment()
     for template_name, output_name in (
         ("README.md.j2", "README.md"),
