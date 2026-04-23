@@ -13,7 +13,7 @@ Each GitHub release repackages the official `@openai/codex` binary and bundled `
 Release pages:
 
 - All releases: `https://github.com/HansBug/codex-portable/releases`
-- Current documented release: [`v0.123.0`](https://github.com/HansBug/codex-portable/releases/tag/v0.123.0) published on `2026-04-23`
+- Current documented release: [`v0.124.0`](https://github.com/HansBug/codex-portable/releases/tag/v0.124.0) published on `2026-04-23`
 
 Supported release targets:
 
@@ -27,16 +27,16 @@ Supported release targets:
 
 ## Current release assets
 
-This README is pinned to the currently published release `v0.123.0`. The table below is refreshed from the actual attached release assets after the release upload job finishes.
+This README is pinned to the currently published release `v0.124.0`. The table below is refreshed from the actual attached release assets after the release upload job finishes.
 
 | Platform | Preferred archive | Alternate archive | SHA-256 file |
 | --- | --- | --- | --- |
-| Linux x64 | [codex-portable-x86_64-unknown-linux-musl-v0.123.0.tar.gz](https://github.com/HansBug/codex-portable/releases/download/v0.123.0/codex-portable-x86_64-unknown-linux-musl-v0.123.0.tar.gz) | [codex-portable-x86_64-unknown-linux-musl-v0.123.0.zip](https://github.com/HansBug/codex-portable/releases/download/v0.123.0/codex-portable-x86_64-unknown-linux-musl-v0.123.0.zip) | [codex-portable-x86_64-unknown-linux-musl-v0.123.0.sha256](https://github.com/HansBug/codex-portable/releases/download/v0.123.0/codex-portable-x86_64-unknown-linux-musl-v0.123.0.sha256) |
-| Linux arm64 | [codex-portable-aarch64-unknown-linux-musl-v0.123.0.tar.gz](https://github.com/HansBug/codex-portable/releases/download/v0.123.0/codex-portable-aarch64-unknown-linux-musl-v0.123.0.tar.gz) | [codex-portable-aarch64-unknown-linux-musl-v0.123.0.zip](https://github.com/HansBug/codex-portable/releases/download/v0.123.0/codex-portable-aarch64-unknown-linux-musl-v0.123.0.zip) | [codex-portable-aarch64-unknown-linux-musl-v0.123.0.sha256](https://github.com/HansBug/codex-portable/releases/download/v0.123.0/codex-portable-aarch64-unknown-linux-musl-v0.123.0.sha256) |
-| macOS x64 | [codex-portable-x86_64-apple-darwin-v0.123.0.tar.gz](https://github.com/HansBug/codex-portable/releases/download/v0.123.0/codex-portable-x86_64-apple-darwin-v0.123.0.tar.gz) | [codex-portable-x86_64-apple-darwin-v0.123.0.zip](https://github.com/HansBug/codex-portable/releases/download/v0.123.0/codex-portable-x86_64-apple-darwin-v0.123.0.zip) | [codex-portable-x86_64-apple-darwin-v0.123.0.sha256](https://github.com/HansBug/codex-portable/releases/download/v0.123.0/codex-portable-x86_64-apple-darwin-v0.123.0.sha256) |
-| macOS arm64 | [codex-portable-aarch64-apple-darwin-v0.123.0.tar.gz](https://github.com/HansBug/codex-portable/releases/download/v0.123.0/codex-portable-aarch64-apple-darwin-v0.123.0.tar.gz) | [codex-portable-aarch64-apple-darwin-v0.123.0.zip](https://github.com/HansBug/codex-portable/releases/download/v0.123.0/codex-portable-aarch64-apple-darwin-v0.123.0.zip) | [codex-portable-aarch64-apple-darwin-v0.123.0.sha256](https://github.com/HansBug/codex-portable/releases/download/v0.123.0/codex-portable-aarch64-apple-darwin-v0.123.0.sha256) |
-| Windows x64 | [codex-portable-x86_64-pc-windows-msvc-v0.123.0.zip](https://github.com/HansBug/codex-portable/releases/download/v0.123.0/codex-portable-x86_64-pc-windows-msvc-v0.123.0.zip) | - | [codex-portable-x86_64-pc-windows-msvc-v0.123.0.sha256](https://github.com/HansBug/codex-portable/releases/download/v0.123.0/codex-portable-x86_64-pc-windows-msvc-v0.123.0.sha256) |
-| Windows arm64 | [codex-portable-aarch64-pc-windows-msvc-v0.123.0.zip](https://github.com/HansBug/codex-portable/releases/download/v0.123.0/codex-portable-aarch64-pc-windows-msvc-v0.123.0.zip) | - | [codex-portable-aarch64-pc-windows-msvc-v0.123.0.sha256](https://github.com/HansBug/codex-portable/releases/download/v0.123.0/codex-portable-aarch64-pc-windows-msvc-v0.123.0.sha256) |
+| Linux x64 | [codex-portable-x86_64-unknown-linux-musl-v0.124.0.tar.gz](https://github.com/HansBug/codex-portable/releases/download/v0.124.0/codex-portable-x86_64-unknown-linux-musl-v0.124.0.tar.gz) | [codex-portable-x86_64-unknown-linux-musl-v0.124.0.zip](https://github.com/HansBug/codex-portable/releases/download/v0.124.0/codex-portable-x86_64-unknown-linux-musl-v0.124.0.zip) | [codex-portable-x86_64-unknown-linux-musl-v0.124.0.sha256](https://github.com/HansBug/codex-portable/releases/download/v0.124.0/codex-portable-x86_64-unknown-linux-musl-v0.124.0.sha256) |
+| Linux arm64 | [codex-portable-aarch64-unknown-linux-musl-v0.124.0.tar.gz](https://github.com/HansBug/codex-portable/releases/download/v0.124.0/codex-portable-aarch64-unknown-linux-musl-v0.124.0.tar.gz) | [codex-portable-aarch64-unknown-linux-musl-v0.124.0.zip](https://github.com/HansBug/codex-portable/releases/download/v0.124.0/codex-portable-aarch64-unknown-linux-musl-v0.124.0.zip) | [codex-portable-aarch64-unknown-linux-musl-v0.124.0.sha256](https://github.com/HansBug/codex-portable/releases/download/v0.124.0/codex-portable-aarch64-unknown-linux-musl-v0.124.0.sha256) |
+| macOS x64 | [codex-portable-x86_64-apple-darwin-v0.124.0.tar.gz](https://github.com/HansBug/codex-portable/releases/download/v0.124.0/codex-portable-x86_64-apple-darwin-v0.124.0.tar.gz) | [codex-portable-x86_64-apple-darwin-v0.124.0.zip](https://github.com/HansBug/codex-portable/releases/download/v0.124.0/codex-portable-x86_64-apple-darwin-v0.124.0.zip) | [codex-portable-x86_64-apple-darwin-v0.124.0.sha256](https://github.com/HansBug/codex-portable/releases/download/v0.124.0/codex-portable-x86_64-apple-darwin-v0.124.0.sha256) |
+| macOS arm64 | [codex-portable-aarch64-apple-darwin-v0.124.0.tar.gz](https://github.com/HansBug/codex-portable/releases/download/v0.124.0/codex-portable-aarch64-apple-darwin-v0.124.0.tar.gz) | [codex-portable-aarch64-apple-darwin-v0.124.0.zip](https://github.com/HansBug/codex-portable/releases/download/v0.124.0/codex-portable-aarch64-apple-darwin-v0.124.0.zip) | [codex-portable-aarch64-apple-darwin-v0.124.0.sha256](https://github.com/HansBug/codex-portable/releases/download/v0.124.0/codex-portable-aarch64-apple-darwin-v0.124.0.sha256) |
+| Windows x64 | [codex-portable-x86_64-pc-windows-msvc-v0.124.0.zip](https://github.com/HansBug/codex-portable/releases/download/v0.124.0/codex-portable-x86_64-pc-windows-msvc-v0.124.0.zip) | - | [codex-portable-x86_64-pc-windows-msvc-v0.124.0.sha256](https://github.com/HansBug/codex-portable/releases/download/v0.124.0/codex-portable-x86_64-pc-windows-msvc-v0.124.0.sha256) |
+| Windows arm64 | [codex-portable-aarch64-pc-windows-msvc-v0.124.0.zip](https://github.com/HansBug/codex-portable/releases/download/v0.124.0/codex-portable-aarch64-pc-windows-msvc-v0.124.0.zip) | - | [codex-portable-aarch64-pc-windows-msvc-v0.124.0.sha256](https://github.com/HansBug/codex-portable/releases/download/v0.124.0/codex-portable-aarch64-pc-windows-msvc-v0.124.0.sha256) |
 
 
 ## Start here
@@ -48,21 +48,21 @@ Pick one path:
 
 ## Fast install
 
-These commands install the current documented release `v0.123.0` directly. If you need an older Codex version, open the Releases page and replace the fixed tag and asset names below with the older release you want.
+These commands install the current documented release `v0.124.0` directly. If you need an older Codex version, open the Releases page and replace the fixed tag and asset names below with the older release you want.
 
 The command blocks below show one common architecture per platform. For the other supported architectures, keep the same steps and replace only the asset name with one from the asset table above.
 
 ### Linux x64 (bash)
 
 ```bash
-VER="v0.123.0"
-ASSET="codex-portable-x86_64-unknown-linux-musl-v0.123.0.tar.gz"
+VER="v0.124.0"
+ASSET="codex-portable-x86_64-unknown-linux-musl-v0.124.0.tar.gz"
 
 touch "$HOME/.bashrc"
 curl -fL -o "$ASSET" "https://github.com/HansBug/codex-portable/releases/download/$VER/$ASSET"
 mkdir -p "$HOME/.local/lib"
 tar -xzf "$ASSET" -C "$HOME/.local/lib"
-ln -sfn "$HOME/.local/lib/codex-portable-x86_64-unknown-linux-musl-v0.123.0" "$HOME/.local/lib/codex-portable"
+ln -sfn "$HOME/.local/lib/codex-portable-x86_64-unknown-linux-musl-v0.124.0" "$HOME/.local/lib/codex-portable"
 grep -qxF 'export PATH="$HOME/.local/lib/codex-portable:$PATH"' "$HOME/.bashrc" || echo 'export PATH="$HOME/.local/lib/codex-portable:$PATH"' >> "$HOME/.bashrc"
 
 export PATH="$HOME/.local/lib/codex-portable:$PATH"
@@ -72,14 +72,14 @@ codex --version
 ### macOS arm64 (zsh)
 
 ```zsh
-VER="v0.123.0"
-ASSET="codex-portable-aarch64-apple-darwin-v0.123.0.tar.gz"
+VER="v0.124.0"
+ASSET="codex-portable-aarch64-apple-darwin-v0.124.0.tar.gz"
 
 touch "$HOME/.zshrc"
 curl -fL -o "$ASSET" "https://github.com/HansBug/codex-portable/releases/download/$VER/$ASSET"
 mkdir -p "$HOME/.local/lib"
 tar -xzf "$ASSET" -C "$HOME/.local/lib"
-ln -sfn "$HOME/.local/lib/codex-portable-aarch64-apple-darwin-v0.123.0" "$HOME/.local/lib/codex-portable"
+ln -sfn "$HOME/.local/lib/codex-portable-aarch64-apple-darwin-v0.124.0" "$HOME/.local/lib/codex-portable"
 grep -qxF 'export PATH="$HOME/.local/lib/codex-portable:$PATH"' "$HOME/.zshrc" || echo 'export PATH="$HOME/.local/lib/codex-portable:$PATH"' >> "$HOME/.zshrc"
 
 export PATH="$HOME/.local/lib/codex-portable:$PATH"
@@ -91,14 +91,14 @@ If you use `bash` on macOS, write the PATH line to `~/.bashrc` instead of `~/.zs
 ### Windows PowerShell
 
 ```powershell
-$Ver = 'v0.123.0'
-$Asset = 'codex-portable-x86_64-pc-windows-msvc-v0.123.0.zip'
+$Ver = 'v0.124.0'
+$Asset = 'codex-portable-x86_64-pc-windows-msvc-v0.124.0.zip'
 
 Invoke-WebRequest "https://github.com/HansBug/codex-portable/releases/download/$Ver/$Asset" -OutFile $Asset
 $Root = Join-Path $env:LOCALAPPDATA 'Programs'
 New-Item -ItemType Directory -Force $Root | Out-Null
 Expand-Archive $Asset -DestinationPath $Root -Force
-$Bundle = Join-Path $Root 'codex-portable-x86_64-pc-windows-msvc-v0.123.0'
+$Bundle = Join-Path $Root 'codex-portable-x86_64-pc-windows-msvc-v0.124.0'
 $UserPath = [Environment]::GetEnvironmentVariable('Path', 'User')
 if ([string]::IsNullOrWhiteSpace($UserPath)) {
   [Environment]::SetEnvironmentVariable('Path', $Bundle, 'User')
@@ -121,12 +121,12 @@ Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 Run these in `cmd.exe`:
 
 ```cmd
-set "VER=v0.123.0"
-set "ASSET=codex-portable-x86_64-pc-windows-msvc-v0.123.0.zip"
+set "VER=v0.124.0"
+set "ASSET=codex-portable-x86_64-pc-windows-msvc-v0.124.0.zip"
 ```
 
 ```cmd
-powershell -NoProfile -Command "$asset='%ASSET%'; $root=Join-Path $env:LOCALAPPDATA 'Programs'; Invoke-WebRequest \"https://github.com/HansBug/codex-portable/releases/download/%VER%/$asset\" -OutFile $asset; New-Item -ItemType Directory -Force $root | Out-Null; Expand-Archive $asset -DestinationPath $root -Force; $bundle=Join-Path $root 'codex-portable-x86_64-pc-windows-msvc-v0.123.0'; $userPath=[Environment]::GetEnvironmentVariable('Path','User'); if([string]::IsNullOrWhiteSpace($userPath)){[Environment]::SetEnvironmentVariable('Path',$bundle,'User')} elseif(($userPath -split ';') -notcontains $bundle){[Environment]::SetEnvironmentVariable('Path',\"$userPath;$bundle\",'User')}; Write-Host $bundle"
+powershell -NoProfile -Command "$asset='%ASSET%'; $root=Join-Path $env:LOCALAPPDATA 'Programs'; Invoke-WebRequest \"https://github.com/HansBug/codex-portable/releases/download/%VER%/$asset\" -OutFile $asset; New-Item -ItemType Directory -Force $root | Out-Null; Expand-Archive $asset -DestinationPath $root -Force; $bundle=Join-Path $root 'codex-portable-x86_64-pc-windows-msvc-v0.124.0'; $userPath=[Environment]::GetEnvironmentVariable('Path','User'); if([string]::IsNullOrWhiteSpace($userPath)){[Environment]::SetEnvironmentVariable('Path',$bundle,'User')} elseif(($userPath -split ';') -notcontains $bundle){[Environment]::SetEnvironmentVariable('Path',\"$userPath;$bundle\",'User')}; Write-Host $bundle"
 ```
 
 Open a new `cmd.exe` and verify:
@@ -141,12 +141,12 @@ Use this when the target machine has no internet access, or when you prefer to d
 
 ### 1. Open the release page
 
-- Current release: `https://github.com/HansBug/codex-portable/releases/tag/v0.123.0`
+- Current release: `https://github.com/HansBug/codex-portable/releases/tag/v0.124.0`
 - All releases: `https://github.com/HansBug/codex-portable/releases`
 
 ### 2. Download the correct asset
 
-Prefer `tar.gz` on Linux and macOS because it preserves executable permissions. The current release `v0.123.0` assets are already linked in the asset table above.
+Prefer `tar.gz` on Linux and macOS because it preserves executable permissions. The current release `v0.124.0` assets are already linked in the asset table above.
 
 ### 3. Extract and start
 
@@ -155,22 +155,22 @@ Keep the extracted directory intact. Do not copy only `codex`, `codex.cmd`, or `
 #### Linux x64
 
 ```bash
-tar -xzf codex-portable-x86_64-unknown-linux-musl-v0.123.0.tar.gz
-cd codex-portable-x86_64-unknown-linux-musl-v0.123.0
+tar -xzf codex-portable-x86_64-unknown-linux-musl-v0.124.0.tar.gz
+cd codex-portable-x86_64-unknown-linux-musl-v0.124.0
 ./codex --version
 ```
 
 #### macOS arm64
 
 ```zsh
-tar -xzf codex-portable-aarch64-apple-darwin-v0.123.0.tar.gz
-cd codex-portable-aarch64-apple-darwin-v0.123.0
+tar -xzf codex-portable-aarch64-apple-darwin-v0.124.0.tar.gz
+cd codex-portable-aarch64-apple-darwin-v0.124.0
 ./codex --version
 ```
 
 #### Windows
 
-1. Extract `codex-portable-x86_64-pc-windows-msvc-v0.123.0.zip`.
+1. Extract `codex-portable-x86_64-pc-windows-msvc-v0.124.0.zip`.
 2. Open `cmd.exe` or PowerShell in the extracted folder.
 3. Start with `codex.cmd --version`.
 4. If you prefer PowerShell, run `.\codex.ps1 --version`.
@@ -188,21 +188,21 @@ Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 For Linux:
 
 ```bash
-echo 'export PATH="/path/to/codex-portable-x86_64-unknown-linux-musl-v0.123.0:$PATH"' >> "$HOME/.bashrc"
-export PATH="/path/to/codex-portable-x86_64-unknown-linux-musl-v0.123.0:$PATH"
+echo 'export PATH="/path/to/codex-portable-x86_64-unknown-linux-musl-v0.124.0:$PATH"' >> "$HOME/.bashrc"
+export PATH="/path/to/codex-portable-x86_64-unknown-linux-musl-v0.124.0:$PATH"
 ```
 
 For macOS:
 
 ```zsh
-echo 'export PATH="/path/to/codex-portable-aarch64-apple-darwin-v0.123.0:$PATH"' >> "$HOME/.zshrc"
-export PATH="/path/to/codex-portable-aarch64-apple-darwin-v0.123.0:$PATH"
+echo 'export PATH="/path/to/codex-portable-aarch64-apple-darwin-v0.124.0:$PATH"' >> "$HOME/.zshrc"
+export PATH="/path/to/codex-portable-aarch64-apple-darwin-v0.124.0:$PATH"
 ```
 
 On Windows, add the extracted folder in System Settings or with PowerShell:
 
 ```powershell
-[Environment]::SetEnvironmentVariable('Path', "$env:Path;C:\path\to\codex-portable-x86_64-pc-windows-msvc-v0.123.0", 'User')
+[Environment]::SetEnvironmentVariable('Path', "$env:Path;C:\path\to\codex-portable-x86_64-pc-windows-msvc-v0.124.0", 'User')
 ```
 
 ## Basic config
@@ -320,7 +320,7 @@ The bundle does not include user state such as `~/.codex`, `auth.json`, sessions
 
 ## Validation
 
-The Linux `Fast install`, `Manual / offline install`, and `Basic config` flows for the current documented release `v0.123.0` were validated locally in clean Ubuntu-based Docker containers before publication.
+The Linux `Fast install`, `Manual / offline install`, and `Basic config` flows for the current documented release `v0.124.0` were validated locally in clean Ubuntu-based Docker containers before publication.
 
 ## Release and build workflows
 
