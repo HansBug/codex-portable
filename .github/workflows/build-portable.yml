@@ -552,6 +552,8 @@ jobs:
 
       - name: Render README files from templates
         shell: bash
+        env:
+          PORTABLE_TEST_MODEL: ${{ secrets.PORTABLE_TEST_MODEL }}
         run: |
           set -euo pipefail
           . "$RUNNER_TEMP/readme-venv/bin/activate"

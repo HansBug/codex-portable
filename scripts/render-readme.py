@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 from typing import Any
 
@@ -108,7 +109,9 @@ def normalize_asset(asset: dict[str, Any], fallback_base_url: str) -> dict[str, 
     }
 
 
-def build_context(release_json: dict[str, Any], repo: str) -> dict[str, Any]:
+def build_context(
+    release_json: dict[str, Any], repo: str, portable_test_model: str
+) -> dict[str, Any]:
     release_tag = release_json["tagName"]
     release_version = release_tag.removeprefix("v")
     release_url = release_json["url"]
@@ -159,6 +162,7 @@ def build_context(release_json: dict[str, Any], repo: str) -> dict[str, Any]:
 
     return {
         "repo": repo,
+        "portable_test_model": portable_test_model,
         "release": {
             "tag": release_tag,
             "version": release_version,
@@ -197,7 +201,10 @@ def render_readmes(context: dict[str, Any], output_root: Path) -> None:
 def main() -> None:
     args = parse_args()
     release_json = load_release_metadata(Path(args.release_json))
-    context = build_context(release_json, args.repo)
+    portable_test_model = os.environ.get("PORTABLE_TEST_MODEL")
+    if not portable_test_model:
+        raise SystemExit("PORTABLE_TEST_MODEL is required to render README templates")
+    context = build_context(release_json, args.repo, portable_test_model)
     render_readmes(context, Path(args.output_root))
 
 

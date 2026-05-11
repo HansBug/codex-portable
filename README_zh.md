@@ -214,7 +214,7 @@ Windows 可以在系统设置里手工加，也可以用 PowerShell：
 ```bash
 mkdir -p "$HOME/.codex"
 cat > "$HOME/.codex/config.toml" <<'EOF'
-model = "gpt-5"
+model = "gpt-5.5"
 model_provider = "portable_provider"
 
 [model_providers.portable_provider]
@@ -234,7 +234,7 @@ export OPENAI_API_KEY="replace-with-your-api-key"
 ```powershell
 New-Item -ItemType Directory -Force "$env:USERPROFILE\.codex" | Out-Null
 @'
-model = "gpt-5"
+model = "gpt-5.5"
 model_provider = "portable_provider"
 
 [model_providers.portable_provider]
@@ -258,7 +258,7 @@ $env:OPENAI_API_KEY = 'replace-with-your-api-key'
 ```cmd
 mkdir "%USERPROFILE%\.codex"
 (
-echo model = "gpt-5"
+echo model = "gpt-5.5"
 echo model_provider = "portable_provider"
 echo.
 echo [model_providers.portable_provider]

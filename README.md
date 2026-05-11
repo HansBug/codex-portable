@@ -214,7 +214,7 @@ Replace the placeholder values with your real model, base URL, and API key.
 ```bash
 mkdir -p "$HOME/.codex"
 cat > "$HOME/.codex/config.toml" <<'EOF'
-model = "gpt-5"
+model = "gpt-5.5"
 model_provider = "portable_provider"
 
 [model_providers.portable_provider]
@@ -234,7 +234,7 @@ To keep the key across terminal restarts, append the export line to `~/.bashrc` 
 ```powershell
 New-Item -ItemType Directory -Force "$env:USERPROFILE\.codex" | Out-Null
 @'
-model = "gpt-5"
+model = "gpt-5.5"
 model_provider = "portable_provider"
 
 [model_providers.portable_provider]
@@ -258,7 +258,7 @@ To keep the key across terminal restarts:
 ```cmd
 mkdir "%USERPROFILE%\.codex"
 (
-echo model = "gpt-5"
+echo model = "gpt-5.5"
 echo model_provider = "portable_provider"
 echo.
 echo [model_providers.portable_provider]
