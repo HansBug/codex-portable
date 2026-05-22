@@ -112,9 +112,53 @@ if (targetTriples.length !== 1) {
 const targetTriple = targetTriples[0];
 const tripleRoot = path.join(vendorRoot, targetTriple);
 const codexBinaryName = process.platform === "win32" ? "codex.exe" : "codex";
-const sourceCodexDir = path.join(tripleRoot, "codex");
-const sourceBinaryPath = path.join(sourceCodexDir, codexBinaryName);
-const sourcePathDir = path.join(tripleRoot, "path");
+
+// Upstream layout discovery.
+// - >=0.133.0 ships a self-describing manifest at vendor/<triple>/codex-package.json
+//   with entrypoint/pathDir/resourcesDir, and adds a sibling codex-resources/
+//   directory holding sandbox helpers (bwrap on Linux, codex-command-runner.exe
+//   + codex-windows-sandbox-setup.exe on Windows, empty on macOS).
+// - <=0.132.0 has no manifest; binary lives in codex/, PATH helpers in path/,
+//   no resourcesDir.
+const SUPPORTED_LAYOUT_VERSION = 1;
+const manifestPath = path.join(tripleRoot, "codex-package.json");
+let codexLayout;
+if (existsSync(manifestPath)) {
+  const manifest = readJson(manifestPath);
+  if (manifest.layoutVersion !== SUPPORTED_LAYOUT_VERSION) {
+    throw new Error(
+      `Unsupported codex-package.json layoutVersion ${manifest.layoutVersion} at ${manifestPath}; ` +
+        `this build script supports layoutVersion ${SUPPORTED_LAYOUT_VERSION}`,
+    );
+  }
+  if (!manifest.entrypoint || !manifest.pathDir) {
+    throw new Error(
+      `codex-package.json at ${manifestPath} is missing required fields entrypoint and/or pathDir`,
+    );
+  }
+  codexLayout = {
+    source: "manifest",
+    layoutVersion: manifest.layoutVersion,
+    entrypointRel: manifest.entrypoint,
+    pathDirRel: manifest.pathDir,
+    resourcesDirRel: manifest.resourcesDir ?? null,
+  };
+} else {
+  codexLayout = {
+    source: "legacy",
+    layoutVersion: 0,
+    entrypointRel: path.posix.join("codex", codexBinaryName),
+    pathDirRel: "path",
+    resourcesDirRel: null,
+  };
+}
+
+const sourceBinaryPath = path.join(tripleRoot, codexLayout.entrypointRel);
+const sourceCodexDir = path.dirname(sourceBinaryPath);
+const sourcePathDir = path.join(tripleRoot, codexLayout.pathDirRel);
+const sourceResourcesDir = codexLayout.resourcesDirRel
+  ? path.join(tripleRoot, codexLayout.resourcesDirRel)
+  : null;
 
 if (!existsSync(sourceBinaryPath)) {
   throw new Error(`Codex binary not found at ${sourceBinaryPath}`);
@@ -132,6 +176,16 @@ copyDirectoryContents(sourceCodexDir, bundleBinRoot, {
   rename: (entry) => (entry === codexBinaryName ? bundledBinaryName : entry),
 });
 copyDirectoryContents(sourcePathDir, bundleBinRoot);
+
+// codex-resources/ (upstream >=0.133.0) holds sandbox helpers: bwrap on Linux,
+// codex-command-runner.exe + codex-windows-sandbox-setup.exe on Windows, empty
+// on macOS. Codex first looks them up on PATH, then falls back to
+// dirname(codex)/../codex-resources/. Flatten into bin/ keeps the existing
+// bundle shape unchanged: codex finds helpers via PATH (the launcher prepends
+// bin/), and the user-visible layout stays bin/<helpers>.
+if (sourceResourcesDir && existsSync(sourceResourcesDir)) {
+  copyDirectoryContents(sourceResourcesDir, bundleBinRoot);
+}
 
 if (process.platform === "win32") {
   const cmdLauncher = [
@@ -187,6 +241,11 @@ const metadata = {
   npmLicense: codexPackageJson.license,
   platformPackageName,
   targetTriple,
+  layoutSource: codexLayout.source,
+  layoutVersion: codexLayout.layoutVersion,
+  entrypointRel: codexLayout.entrypointRel,
+  pathDirRel: codexLayout.pathDirRel,
+  resourcesDirRel: codexLayout.resourcesDirRel,
   generatedAtUtc: new Date().toISOString(),
   hostname: os.hostname(),
 };
