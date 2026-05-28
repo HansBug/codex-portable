@@ -290,6 +290,7 @@ jobs:
           out_path="$RUNNER_TEMP/portable-last.txt"
           stderr_path="$RUNNER_TEMP/portable-stderr.log"
           attempts=5
+          codex_rc=0
           for attempt in $(seq 1 $attempts); do
             : > "$out_path"
             : > "$stderr_path"
@@ -305,25 +306,37 @@ jobs:
             codex_rc=$?
             set -e
 
-            last_msg="$(tr -d '\r\n' < "$out_path" || true)"
-            if [ "$codex_rc" -eq 0 ] && printf '%s' "$last_msg" | grep -Fq 'PORTABLE_OK'; then
-              echo "Basic smoke attempt $attempt/$attempts succeeded."
-              exit 0
+            if [ "$codex_rc" -eq 0 ]; then
+              break
             fi
 
-            echo "::warning::Basic smoke attempt $attempt/$attempts failed (codex exit=$codex_rc)."
-            echo "--- last agent message ---"
-            cat "$out_path" || true
+            echo "::warning::Basic smoke: codex exited $codex_rc on attempt $attempt/$attempts (treated as network/upstream); retrying."
             echo "--- codex stderr (tail) ---"
             tail -n 80 "$stderr_path" || true
             echo "--------------------------"
             sleep $((attempt * 2))
           done
 
-          echo "::error::Basic smoke test failed after $attempts attempts."
-          echo "--- bundle portable-metadata.json ---"
-          cat "$BUNDLE_DIR/portable-metadata.json" || true
-          exit 1
+          if [ "$codex_rc" -ne 0 ]; then
+            echo "::error::Basic smoke: codex exited $codex_rc on every attempt (network/upstream failure)."
+            echo "--- codex stderr (full) ---"
+            cat "$stderr_path" || true
+            echo "--- bundle portable-metadata.json ---"
+            cat "$BUNDLE_DIR/portable-metadata.json" || true
+            exit 1
+          fi
+
+          if ! grep -Fq 'PORTABLE_OK' "$out_path"; then
+            echo "::error::Basic smoke: codex exited 0 but agent message did not contain PORTABLE_OK (LLM output regression — not retried)."
+            echo "--- last agent message ---"
+            cat "$out_path" || true
+            echo "--- codex stderr (tail) ---"
+            tail -n 80 "$stderr_path" || true
+            echo "--- bundle portable-metadata.json ---"
+            cat "$BUNDLE_DIR/portable-metadata.json" || true
+            exit 1
+          fi
+          echo "Basic smoke succeeded."
 
       - name: Basic smoke test on Windows
         if: runner.os == 'Windows'
@@ -337,10 +350,10 @@ jobs:
           $outPath = Join-Path $env:RUNNER_TEMP 'portable-last.txt'
           $stderrPath = Join-Path $env:RUNNER_TEMP 'portable-stderr.log'
           $attempts = 5
+          $codexRc = 0
           for ($attempt = 1; $attempt -le $attempts; $attempt++) {
             Set-Content -Path $outPath -Value '' -NoNewline
             Set-Content -Path $stderrPath -Value '' -NoNewline
-            $codexRc = 0
             try {
               & $launcher exec `
                 --skip-git-repo-check `
@@ -354,29 +367,37 @@ jobs:
               $codexRc = if ($LASTEXITCODE) { $LASTEXITCODE } else { 1 }
             }
 
-            $lastMsg = ''
-            if (Test-Path $outPath) {
-              $lastMsg = (Get-Content $outPath -Raw).Trim()
-            }
+            if ($codexRc -eq 0) { break }
 
-            if ($codexRc -eq 0 -and $lastMsg -match 'PORTABLE_OK') {
-              Write-Host "Basic smoke attempt $attempt/$attempts succeeded."
-              exit 0
-            }
-
-            Write-Host "::warning::Basic smoke attempt $attempt/$attempts failed (codex exit=$codexRc)."
-            Write-Host "--- last agent message ---"
-            if (Test-Path $outPath) { Get-Content $outPath -Raw }
+            Write-Host "::warning::Basic smoke: codex exited $codexRc on attempt $attempt/$attempts (treated as network/upstream); retrying."
             Write-Host "--- codex stderr (tail) ---"
             if (Test-Path $stderrPath) { Get-Content $stderrPath -Tail 80 }
             Write-Host "--------------------------"
             Start-Sleep -Seconds ($attempt * 2)
           }
 
-          Write-Host "::error::Basic smoke test failed after $attempts attempts."
-          Write-Host "--- bundle portable-metadata.json ---"
-          Get-Content (Join-Path $env:BUNDLE_DIR 'portable-metadata.json') -ErrorAction SilentlyContinue
-          exit 1
+          if ($codexRc -ne 0) {
+            Write-Host "::error::Basic smoke: codex exited $codexRc on every attempt (network/upstream failure)."
+            Write-Host "--- codex stderr (full) ---"
+            if (Test-Path $stderrPath) { Get-Content $stderrPath -Raw }
+            Write-Host "--- bundle portable-metadata.json ---"
+            Get-Content (Join-Path $env:BUNDLE_DIR 'portable-metadata.json') -ErrorAction SilentlyContinue
+            exit 1
+          }
+
+          $lastMsg = ''
+          if (Test-Path $outPath) { $lastMsg = (Get-Content $outPath -Raw) }
+          if ($lastMsg -notmatch 'PORTABLE_OK') {
+            Write-Host "::error::Basic smoke: codex exited 0 but agent message did not contain PORTABLE_OK (LLM output regression — not retried)."
+            Write-Host "--- last agent message ---"
+            if (Test-Path $outPath) { Get-Content $outPath -Raw }
+            Write-Host "--- codex stderr (tail) ---"
+            if (Test-Path $stderrPath) { Get-Content $stderrPath -Tail 80 }
+            Write-Host "--- bundle portable-metadata.json ---"
+            Get-Content (Join-Path $env:BUNDLE_DIR 'portable-metadata.json') -ErrorAction SilentlyContinue
+            exit 1
+          }
+          Write-Host "Basic smoke succeeded."
 
       - name: Verify bundle layout on Linux and macOS
         if: runner.os != 'Windows'
@@ -434,6 +455,7 @@ jobs:
           out_path="$RUNNER_TEMP/tool-read-last.txt"
           stderr_path="$RUNNER_TEMP/tool-read-stderr.log"
           attempts=5
+          codex_rc=0
 
           for attempt in $(seq 1 $attempts); do
             : > "$json_path"
@@ -453,37 +475,46 @@ jobs:
             codex_rc=$?
             set -e
 
-            token_ok=false
-            exec_ok=false
-            if grep -Fq "TOOL_READ_OK:$token" "$out_path"; then
-              token_ok=true
-            fi
-            if grep -q '"type":"command_execution"' "$json_path"; then
-              exec_ok=true
+            if [ "$codex_rc" -eq 0 ]; then
+              break
             fi
 
-            if [ "$codex_rc" -eq 0 ] && [ "$token_ok" = true ] && [ "$exec_ok" = true ]; then
-              echo "Tool read attempt $attempt/$attempts succeeded."
-              exit 0
-            fi
-
-            echo "::warning::Tool read attempt $attempt/$attempts failed (codex exit=$codex_rc, token_match=$token_ok, command_execution_event=$exec_ok)."
-            echo "--- last agent message ---"
-            cat "$out_path" || true
-            echo "--- JSON event stream (tail 80) ---"
-            tail -n 80 "$json_path" || true
+            echo "::warning::Tool read: codex exited $codex_rc on attempt $attempt/$attempts (treated as network/upstream); retrying."
             echo "--- codex stderr (tail 40) ---"
             tail -n 40 "$stderr_path" || true
+            echo "--- JSON event stream (tail 40) ---"
+            tail -n 40 "$json_path" || true
             echo "----------------------------------"
             sleep $((attempt * 2))
           done
 
-          echo "::error::Tool read test failed after $attempts attempts."
-          echo "--- bundle portable-metadata.json ---"
-          cat "$BUNDLE_DIR/portable-metadata.json" || true
-          echo "--- final JSON event stream (full) ---"
-          cat "$json_path" || true
-          exit 1
+          if [ "$codex_rc" -ne 0 ]; then
+            echo "::error::Tool read: codex exited $codex_rc on every attempt (network/upstream failure)."
+            echo "--- codex stderr (full) ---"
+            cat "$stderr_path" || true
+            echo "--- bundle portable-metadata.json ---"
+            cat "$BUNDLE_DIR/portable-metadata.json" || true
+            exit 1
+          fi
+
+          token_ok=false
+          exec_ok=false
+          if grep -Fq "TOOL_READ_OK:$token" "$out_path"; then token_ok=true; fi
+          if grep -q '"type":"command_execution"' "$json_path"; then exec_ok=true; fi
+
+          if [ "$token_ok" != true ] || [ "$exec_ok" != true ]; then
+            echo "::error::Tool read: codex exited 0 but assertions failed (token_match=$token_ok, command_execution_event=$exec_ok) — LLM behavior regression, not retried."
+            echo "--- last agent message ---"
+            cat "$out_path" || true
+            echo "--- JSON event stream (full) ---"
+            cat "$json_path" || true
+            echo "--- codex stderr (tail 40) ---"
+            tail -n 40 "$stderr_path" || true
+            echo "--- bundle portable-metadata.json ---"
+            cat "$BUNDLE_DIR/portable-metadata.json" || true
+            exit 1
+          fi
+          echo "Tool read succeeded."
 
       - name: Tool read test on Windows
         if: runner.os == 'Windows'
@@ -502,13 +533,13 @@ jobs:
           $stderrPath = Join-Path $env:RUNNER_TEMP 'tool-read-stderr.log'
           $launcher = Join-Path $env:BUNDLE_DIR 'codex.ps1'
           $attempts = 5
+          $codexRc = 0
 
           for ($attempt = 1; $attempt -le $attempts; $attempt++) {
             Set-Content -Path $jsonPath -Value '' -NoNewline
             Set-Content -Path $outPath -Value '' -NoNewline
             Set-Content -Path $stderrPath -Value '' -NoNewline
 
-            $codexRc = 0
             try {
               & $launcher exec `
                 --json `
@@ -524,33 +555,44 @@ jobs:
               $codexRc = if ($LASTEXITCODE) { $LASTEXITCODE } else { 1 }
             }
 
-            $lastMsg = ''
-            if (Test-Path $outPath) { $lastMsg = (Get-Content $outPath -Raw).Trim() }
-            $tokenOk = $lastMsg -match [regex]::Escape("TOOL_READ_OK:$token")
-            $execOk = Select-String -Path $jsonPath -Pattern '"type":"command_execution"' -SimpleMatch -Quiet
+            if ($codexRc -eq 0) { break }
 
-            if ($codexRc -eq 0 -and $tokenOk -and $execOk) {
-              Write-Host "Tool read attempt $attempt/$attempts succeeded."
-              exit 0
-            }
-
-            Write-Host "::warning::Tool read attempt $attempt/$attempts failed (codex exit=$codexRc, token_match=$tokenOk, command_execution_event=$execOk)."
-            Write-Host "--- last agent message ---"
-            if (Test-Path $outPath) { Get-Content $outPath -Raw }
-            Write-Host "--- JSON event stream (tail 80) ---"
-            if (Test-Path $jsonPath) { Get-Content $jsonPath -Tail 80 }
+            Write-Host "::warning::Tool read: codex exited $codexRc on attempt $attempt/$attempts (treated as network/upstream); retrying."
             Write-Host "--- codex stderr (tail 40) ---"
             if (Test-Path $stderrPath) { Get-Content $stderrPath -Tail 40 }
+            Write-Host "--- JSON event stream (tail 40) ---"
+            if (Test-Path $jsonPath) { Get-Content $jsonPath -Tail 40 }
             Write-Host "----------------------------------"
             Start-Sleep -Seconds ($attempt * 2)
           }
 
-          Write-Host "::error::Tool read test failed after $attempts attempts."
-          Write-Host "--- bundle portable-metadata.json ---"
-          Get-Content (Join-Path $env:BUNDLE_DIR 'portable-metadata.json') -ErrorAction SilentlyContinue
-          Write-Host "--- final JSON event stream (full) ---"
-          if (Test-Path $jsonPath) { Get-Content $jsonPath -Raw }
-          exit 1
+          if ($codexRc -ne 0) {
+            Write-Host "::error::Tool read: codex exited $codexRc on every attempt (network/upstream failure)."
+            Write-Host "--- codex stderr (full) ---"
+            if (Test-Path $stderrPath) { Get-Content $stderrPath -Raw }
+            Write-Host "--- bundle portable-metadata.json ---"
+            Get-Content (Join-Path $env:BUNDLE_DIR 'portable-metadata.json') -ErrorAction SilentlyContinue
+            exit 1
+          }
+
+          $lastMsg = ''
+          if (Test-Path $outPath) { $lastMsg = (Get-Content $outPath -Raw) }
+          $tokenOk = $lastMsg -match [regex]::Escape("TOOL_READ_OK:$token")
+          $execOk = Select-String -Path $jsonPath -Pattern '"type":"command_execution"' -SimpleMatch -Quiet
+
+          if (-not $tokenOk -or -not $execOk) {
+            Write-Host "::error::Tool read: codex exited 0 but assertions failed (token_match=$tokenOk, command_execution_event=$execOk) — LLM behavior regression, not retried."
+            Write-Host "--- last agent message ---"
+            if (Test-Path $outPath) { Get-Content $outPath -Raw }
+            Write-Host "--- JSON event stream (full) ---"
+            if (Test-Path $jsonPath) { Get-Content $jsonPath -Raw }
+            Write-Host "--- codex stderr (tail 40) ---"
+            if (Test-Path $stderrPath) { Get-Content $stderrPath -Tail 40 }
+            Write-Host "--- bundle portable-metadata.json ---"
+            Get-Content (Join-Path $env:BUNDLE_DIR 'portable-metadata.json') -ErrorAction SilentlyContinue
+            exit 1
+          }
+          Write-Host "Tool read succeeded."
 
       - name: System operation test on Linux and macOS
         if: runner.os != 'Windows'
@@ -566,6 +608,7 @@ jobs:
           stderr_path="$RUNNER_TEMP/system-op-stderr.log"
           probe_path="$workspace/system_probe.txt"
           attempts=5
+          codex_rc=0
 
           for attempt in $(seq 1 $attempts); do
             rm -rf "$workspace"
@@ -587,43 +630,50 @@ jobs:
             codex_rc=$?
             set -e
 
-            reply_ok=false
-            probe_ok=false
-            exec_ok=false
-            if grep -Fq 'SYSTEM_WRITE_OK' "$out_path"; then
-              reply_ok=true
-            fi
-            if [ -f "$probe_path" ] && grep -Fq "SYSTEM_PROBE_OK:$token" "$probe_path"; then
-              probe_ok=true
-            fi
-            if grep -q '"type":"command_execution"' "$json_path"; then
-              exec_ok=true
+            if [ "$codex_rc" -eq 0 ]; then
+              break
             fi
 
-            if [ "$codex_rc" -eq 0 ] && [ "$reply_ok" = true ] && [ "$probe_ok" = true ] && [ "$exec_ok" = true ]; then
-              echo "System op attempt $attempt/$attempts succeeded."
-              exit 0
-            fi
-
-            echo "::warning::System op attempt $attempt/$attempts failed (codex exit=$codex_rc, reply_match=$reply_ok, probe_match=$probe_ok, command_execution_event=$exec_ok)."
-            echo "--- last agent message ---"
-            cat "$out_path" || true
-            echo "--- system_probe.txt (if any) ---"
-            [ -f "$probe_path" ] && cat "$probe_path" || echo "(missing)"
-            echo "--- JSON event stream (tail 80) ---"
-            tail -n 80 "$json_path" || true
+            echo "::warning::System op: codex exited $codex_rc on attempt $attempt/$attempts (treated as network/upstream); retrying."
             echo "--- codex stderr (tail 40) ---"
             tail -n 40 "$stderr_path" || true
+            echo "--- JSON event stream (tail 40) ---"
+            tail -n 40 "$json_path" || true
             echo "----------------------------------"
             sleep $((attempt * 2))
           done
 
-          echo "::error::System operation test failed after $attempts attempts."
-          echo "--- bundle portable-metadata.json ---"
-          cat "$BUNDLE_DIR/portable-metadata.json" || true
-          echo "--- final JSON event stream (full) ---"
-          cat "$json_path" || true
-          exit 1
+          if [ "$codex_rc" -ne 0 ]; then
+            echo "::error::System op: codex exited $codex_rc on every attempt (network/upstream failure)."
+            echo "--- codex stderr (full) ---"
+            cat "$stderr_path" || true
+            echo "--- bundle portable-metadata.json ---"
+            cat "$BUNDLE_DIR/portable-metadata.json" || true
+            exit 1
+          fi
+
+          reply_ok=false
+          probe_ok=false
+          exec_ok=false
+          if grep -Fq 'SYSTEM_WRITE_OK' "$out_path"; then reply_ok=true; fi
+          if [ -f "$probe_path" ] && grep -Fq "SYSTEM_PROBE_OK:$token" "$probe_path"; then probe_ok=true; fi
+          if grep -q '"type":"command_execution"' "$json_path"; then exec_ok=true; fi
+
+          if [ "$reply_ok" != true ] || [ "$probe_ok" != true ] || [ "$exec_ok" != true ]; then
+            echo "::error::System op: codex exited 0 but assertions failed (reply_match=$reply_ok, probe_match=$probe_ok, command_execution_event=$exec_ok) — LLM behavior regression, not retried."
+            echo "--- last agent message ---"
+            cat "$out_path" || true
+            echo "--- system_probe.txt (if any) ---"
+            [ -f "$probe_path" ] && cat "$probe_path" || echo "(missing)"
+            echo "--- JSON event stream (full) ---"
+            cat "$json_path" || true
+            echo "--- codex stderr (tail 40) ---"
+            tail -n 40 "$stderr_path" || true
+            echo "--- bundle portable-metadata.json ---"
+            cat "$BUNDLE_DIR/portable-metadata.json" || true
+            exit 1
+          fi
+          echo "System op succeeded."
 
       - name: System operation test on Windows
         if: runner.os == 'Windows'
@@ -639,6 +689,7 @@ jobs:
           $probePath = Join-Path $workspace 'system_probe.txt'
           $launcher = Join-Path $env:BUNDLE_DIR 'codex.ps1'
           $attempts = 5
+          $codexRc = 0
 
           for ($attempt = 1; $attempt -le $attempts; $attempt++) {
             Remove-Item $workspace -Recurse -Force -ErrorAction SilentlyContinue
@@ -647,7 +698,6 @@ jobs:
             Set-Content -Path $outPath -Value '' -NoNewline
             Set-Content -Path $stderrPath -Value '' -NoNewline
 
-            $codexRc = 0
             try {
               & $launcher exec `
                 --json `
@@ -663,39 +713,50 @@ jobs:
               $codexRc = if ($LASTEXITCODE) { $LASTEXITCODE } else { 1 }
             }
 
-            $lastMsg = ''
-            if (Test-Path $outPath) { $lastMsg = (Get-Content $outPath -Raw).Trim() }
-            $probeContent = ''
-            if (Test-Path $probePath) { $probeContent = (Get-Content $probePath -Raw).Trim() }
+            if ($codexRc -eq 0) { break }
 
-            $replyOk = $lastMsg -match 'SYSTEM_WRITE_OK'
-            $probeOk = $probeContent -match [regex]::Escape("SYSTEM_PROBE_OK:$token")
-            $execOk = Select-String -Path $jsonPath -Pattern '"type":"command_execution"' -SimpleMatch -Quiet
-
-            if ($codexRc -eq 0 -and $replyOk -and $probeOk -and $execOk) {
-              Write-Host "System op attempt $attempt/$attempts succeeded."
-              exit 0
-            }
-
-            Write-Host "::warning::System op attempt $attempt/$attempts failed (codex exit=$codexRc, reply_match=$replyOk, probe_match=$probeOk, command_execution_event=$execOk)."
-            Write-Host "--- last agent message ---"
-            if (Test-Path $outPath) { Get-Content $outPath -Raw }
-            Write-Host "--- system_probe.txt (if any) ---"
-            if (Test-Path $probePath) { Get-Content $probePath -Raw } else { Write-Host '(missing)' }
-            Write-Host "--- JSON event stream (tail 80) ---"
-            if (Test-Path $jsonPath) { Get-Content $jsonPath -Tail 80 }
+            Write-Host "::warning::System op: codex exited $codexRc on attempt $attempt/$attempts (treated as network/upstream); retrying."
             Write-Host "--- codex stderr (tail 40) ---"
             if (Test-Path $stderrPath) { Get-Content $stderrPath -Tail 40 }
+            Write-Host "--- JSON event stream (tail 40) ---"
+            if (Test-Path $jsonPath) { Get-Content $jsonPath -Tail 40 }
             Write-Host "----------------------------------"
             Start-Sleep -Seconds ($attempt * 2)
           }
 
-          Write-Host "::error::System operation test failed after $attempts attempts."
-          Write-Host "--- bundle portable-metadata.json ---"
-          Get-Content (Join-Path $env:BUNDLE_DIR 'portable-metadata.json') -ErrorAction SilentlyContinue
-          Write-Host "--- final JSON event stream (full) ---"
-          if (Test-Path $jsonPath) { Get-Content $jsonPath -Raw }
-          exit 1
+          if ($codexRc -ne 0) {
+            Write-Host "::error::System op: codex exited $codexRc on every attempt (network/upstream failure)."
+            Write-Host "--- codex stderr (full) ---"
+            if (Test-Path $stderrPath) { Get-Content $stderrPath -Raw }
+            Write-Host "--- bundle portable-metadata.json ---"
+            Get-Content (Join-Path $env:BUNDLE_DIR 'portable-metadata.json') -ErrorAction SilentlyContinue
+            exit 1
+          }
+
+          $lastMsg = ''
+          if (Test-Path $outPath) { $lastMsg = (Get-Content $outPath -Raw) }
+          $probeContent = ''
+          if (Test-Path $probePath) { $probeContent = (Get-Content $probePath -Raw) }
+
+          $replyOk = $lastMsg -match 'SYSTEM_WRITE_OK'
+          $probeOk = $probeContent -match [regex]::Escape("SYSTEM_PROBE_OK:$token")
+          $execOk = Select-String -Path $jsonPath -Pattern '"type":"command_execution"' -SimpleMatch -Quiet
+
+          if (-not $replyOk -or -not $probeOk -or -not $execOk) {
+            Write-Host "::error::System op: codex exited 0 but assertions failed (reply_match=$replyOk, probe_match=$probeOk, command_execution_event=$execOk) — LLM behavior regression, not retried."
+            Write-Host "--- last agent message ---"
+            if (Test-Path $outPath) { Get-Content $outPath -Raw }
+            Write-Host "--- system_probe.txt (if any) ---"
+            if (Test-Path $probePath) { Get-Content $probePath -Raw } else { Write-Host '(missing)' }
+            Write-Host "--- JSON event stream (full) ---"
+            if (Test-Path $jsonPath) { Get-Content $jsonPath -Raw }
+            Write-Host "--- codex stderr (tail 40) ---"
+            if (Test-Path $stderrPath) { Get-Content $stderrPath -Tail 40 }
+            Write-Host "--- bundle portable-metadata.json ---"
+            Get-Content (Join-Path $env:BUNDLE_DIR 'portable-metadata.json') -ErrorAction SilentlyContinue
+            exit 1
+          }
+          Write-Host "System op succeeded."
 
   publish-release-assets:
     name: Publish release assets
