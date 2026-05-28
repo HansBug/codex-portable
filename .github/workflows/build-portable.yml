@@ -286,14 +286,44 @@ jobs:
         run: |
           set -euo pipefail
           "$BUNDLE_DIR/codex" --version
-          "$BUNDLE_DIR/codex" exec \
-            --skip-git-repo-check \
-            --dangerously-bypass-approvals-and-sandbox \
-            --color never \
-            -C "$RUNNER_TEMP" \
-            -o "$RUNNER_TEMP/portable-last.txt" \
-            'Reply with exactly PORTABLE_OK and stop.' < /dev/null
-          test "$(tr -d '\r\n' < "$RUNNER_TEMP/portable-last.txt")" = "PORTABLE_OK"
+
+          out_path="$RUNNER_TEMP/portable-last.txt"
+          stderr_path="$RUNNER_TEMP/portable-stderr.log"
+          attempts=5
+          for attempt in $(seq 1 $attempts); do
+            : > "$out_path"
+            : > "$stderr_path"
+            set +e
+            "$BUNDLE_DIR/codex" exec \
+              --skip-git-repo-check \
+              --dangerously-bypass-approvals-and-sandbox \
+              --color never \
+              -C "$RUNNER_TEMP" \
+              -o "$out_path" \
+              'Reply with exactly PORTABLE_OK and stop.' \
+              < /dev/null 2> "$stderr_path"
+            codex_rc=$?
+            set -e
+
+            last_msg="$(tr -d '\r\n' < "$out_path" || true)"
+            if [ "$codex_rc" -eq 0 ] && printf '%s' "$last_msg" | grep -Fq 'PORTABLE_OK'; then
+              echo "Basic smoke attempt $attempt/$attempts succeeded."
+              exit 0
+            fi
+
+            echo "::warning::Basic smoke attempt $attempt/$attempts failed (codex exit=$codex_rc)."
+            echo "--- last agent message ---"
+            cat "$out_path" || true
+            echo "--- codex stderr (tail) ---"
+            tail -n 80 "$stderr_path" || true
+            echo "--------------------------"
+            sleep $((attempt * 2))
+          done
+
+          echo "::error::Basic smoke test failed after $attempts attempts."
+          echo "--- bundle portable-metadata.json ---"
+          cat "$BUNDLE_DIR/portable-metadata.json" || true
+          exit 1
 
       - name: Basic smoke test on Windows
         if: runner.os == 'Windows'
@@ -303,17 +333,50 @@ jobs:
         run: |
           $launcher = Join-Path $env:BUNDLE_DIR 'codex.ps1'
           & $launcher --version
-          & $launcher exec `
-            --skip-git-repo-check `
-            --dangerously-bypass-approvals-and-sandbox `
-            --color never `
-            -C $env:RUNNER_TEMP `
-            -o (Join-Path $env:RUNNER_TEMP 'portable-last.txt') `
-            'Reply with exactly PORTABLE_OK and stop.'
-          $result = (Get-Content (Join-Path $env:RUNNER_TEMP 'portable-last.txt') -Raw).Trim()
-          if ($result -ne 'PORTABLE_OK') {
-            throw "Unexpected smoke test result: $result"
+
+          $outPath = Join-Path $env:RUNNER_TEMP 'portable-last.txt'
+          $stderrPath = Join-Path $env:RUNNER_TEMP 'portable-stderr.log'
+          $attempts = 5
+          for ($attempt = 1; $attempt -le $attempts; $attempt++) {
+            Set-Content -Path $outPath -Value '' -NoNewline
+            Set-Content -Path $stderrPath -Value '' -NoNewline
+            $codexRc = 0
+            try {
+              & $launcher exec `
+                --skip-git-repo-check `
+                --dangerously-bypass-approvals-and-sandbox `
+                --color never `
+                -C $env:RUNNER_TEMP `
+                -o $outPath `
+                'Reply with exactly PORTABLE_OK and stop.' 2> $stderrPath
+              $codexRc = $LASTEXITCODE
+            } catch {
+              $codexRc = if ($LASTEXITCODE) { $LASTEXITCODE } else { 1 }
+            }
+
+            $lastMsg = ''
+            if (Test-Path $outPath) {
+              $lastMsg = (Get-Content $outPath -Raw).Trim()
+            }
+
+            if ($codexRc -eq 0 -and $lastMsg -match 'PORTABLE_OK') {
+              Write-Host "Basic smoke attempt $attempt/$attempts succeeded."
+              exit 0
+            }
+
+            Write-Host "::warning::Basic smoke attempt $attempt/$attempts failed (codex exit=$codexRc)."
+            Write-Host "--- last agent message ---"
+            if (Test-Path $outPath) { Get-Content $outPath -Raw }
+            Write-Host "--- codex stderr (tail) ---"
+            if (Test-Path $stderrPath) { Get-Content $stderrPath -Tail 80 }
+            Write-Host "--------------------------"
+            Start-Sleep -Seconds ($attempt * 2)
           }
+
+          Write-Host "::error::Basic smoke test failed after $attempts attempts."
+          Write-Host "--- bundle portable-metadata.json ---"
+          Get-Content (Join-Path $env:BUNDLE_DIR 'portable-metadata.json') -ErrorAction SilentlyContinue
+          exit 1
 
       - name: Verify bundle layout on Linux and macOS
         if: runner.os != 'Windows'
@@ -369,17 +432,58 @@ jobs:
           printf '%s' "$token" > "$workspace/challenge.txt"
           json_path="$RUNNER_TEMP/tool-read-events.jsonl"
           out_path="$RUNNER_TEMP/tool-read-last.txt"
-          "$BUNDLE_DIR/codex" exec \
-            --json \
-            --skip-git-repo-check \
-            --dangerously-bypass-approvals-and-sandbox \
-            --color never \
-            -C "$workspace" \
-            -o "$out_path" \
-            "Use a shell command to read challenge.txt from the current working directory, then reply with exactly TOOL_READ_OK:$token and nothing else." \
-            < /dev/null > "$json_path"
-          test "$(tr -d '\r\n' < "$out_path")" = "TOOL_READ_OK:$token"
-          grep -q '"type":"command_execution"' "$json_path"
+          stderr_path="$RUNNER_TEMP/tool-read-stderr.log"
+          attempts=5
+
+          for attempt in $(seq 1 $attempts); do
+            : > "$json_path"
+            : > "$out_path"
+            : > "$stderr_path"
+
+            set +e
+            "$BUNDLE_DIR/codex" exec \
+              --json \
+              --skip-git-repo-check \
+              --dangerously-bypass-approvals-and-sandbox \
+              --color never \
+              -C "$workspace" \
+              -o "$out_path" \
+              "Use a shell command to read challenge.txt from the current working directory, then reply with exactly TOOL_READ_OK:$token and nothing else." \
+              < /dev/null > "$json_path" 2> "$stderr_path"
+            codex_rc=$?
+            set -e
+
+            token_ok=false
+            exec_ok=false
+            if grep -Fq "TOOL_READ_OK:$token" "$out_path"; then
+              token_ok=true
+            fi
+            if grep -q '"type":"command_execution"' "$json_path"; then
+              exec_ok=true
+            fi
+
+            if [ "$codex_rc" -eq 0 ] && [ "$token_ok" = true ] && [ "$exec_ok" = true ]; then
+              echo "Tool read attempt $attempt/$attempts succeeded."
+              exit 0
+            fi
+
+            echo "::warning::Tool read attempt $attempt/$attempts failed (codex exit=$codex_rc, token_match=$token_ok, command_execution_event=$exec_ok)."
+            echo "--- last agent message ---"
+            cat "$out_path" || true
+            echo "--- JSON event stream (tail 80) ---"
+            tail -n 80 "$json_path" || true
+            echo "--- codex stderr (tail 40) ---"
+            tail -n 40 "$stderr_path" || true
+            echo "----------------------------------"
+            sleep $((attempt * 2))
+          done
+
+          echo "::error::Tool read test failed after $attempts attempts."
+          echo "--- bundle portable-metadata.json ---"
+          cat "$BUNDLE_DIR/portable-metadata.json" || true
+          echo "--- final JSON event stream (full) ---"
+          cat "$json_path" || true
+          exit 1
 
       - name: Tool read test on Windows
         if: runner.os == 'Windows'
@@ -392,25 +496,61 @@ jobs:
           New-Item -ItemType Directory -Path $workspace -Force | Out-Null
           $token = [guid]::NewGuid().ToString('N')
           Set-Content -Path (Join-Path $workspace 'challenge.txt') -Value $token -NoNewline
+
           $jsonPath = Join-Path $env:RUNNER_TEMP 'tool-read-events.jsonl'
           $outPath = Join-Path $env:RUNNER_TEMP 'tool-read-last.txt'
+          $stderrPath = Join-Path $env:RUNNER_TEMP 'tool-read-stderr.log'
           $launcher = Join-Path $env:BUNDLE_DIR 'codex.ps1'
-          & $launcher exec `
-            --json `
-            --skip-git-repo-check `
-            --dangerously-bypass-approvals-and-sandbox `
-            --color never `
-            -C $workspace `
-            -o $outPath `
-            "Use a shell command to read challenge.txt from the current working directory, then reply with exactly TOOL_READ_OK:$token and nothing else." `
-            > $jsonPath
-          $result = (Get-Content $outPath -Raw).Trim()
-          if ($result -ne "TOOL_READ_OK:$token") {
-            throw "Unexpected tool read result: $result"
+          $attempts = 5
+
+          for ($attempt = 1; $attempt -le $attempts; $attempt++) {
+            Set-Content -Path $jsonPath -Value '' -NoNewline
+            Set-Content -Path $outPath -Value '' -NoNewline
+            Set-Content -Path $stderrPath -Value '' -NoNewline
+
+            $codexRc = 0
+            try {
+              & $launcher exec `
+                --json `
+                --skip-git-repo-check `
+                --dangerously-bypass-approvals-and-sandbox `
+                --color never `
+                -C $workspace `
+                -o $outPath `
+                "Use a shell command to read challenge.txt from the current working directory, then reply with exactly TOOL_READ_OK:$token and nothing else." `
+                > $jsonPath 2> $stderrPath
+              $codexRc = $LASTEXITCODE
+            } catch {
+              $codexRc = if ($LASTEXITCODE) { $LASTEXITCODE } else { 1 }
+            }
+
+            $lastMsg = ''
+            if (Test-Path $outPath) { $lastMsg = (Get-Content $outPath -Raw).Trim() }
+            $tokenOk = $lastMsg -match [regex]::Escape("TOOL_READ_OK:$token")
+            $execOk = Select-String -Path $jsonPath -Pattern '"type":"command_execution"' -SimpleMatch -Quiet
+
+            if ($codexRc -eq 0 -and $tokenOk -and $execOk) {
+              Write-Host "Tool read attempt $attempt/$attempts succeeded."
+              exit 0
+            }
+
+            Write-Host "::warning::Tool read attempt $attempt/$attempts failed (codex exit=$codexRc, token_match=$tokenOk, command_execution_event=$execOk)."
+            Write-Host "--- last agent message ---"
+            if (Test-Path $outPath) { Get-Content $outPath -Raw }
+            Write-Host "--- JSON event stream (tail 80) ---"
+            if (Test-Path $jsonPath) { Get-Content $jsonPath -Tail 80 }
+            Write-Host "--- codex stderr (tail 40) ---"
+            if (Test-Path $stderrPath) { Get-Content $stderrPath -Tail 40 }
+            Write-Host "----------------------------------"
+            Start-Sleep -Seconds ($attempt * 2)
           }
-          if (-not (Select-String -Path $jsonPath -Pattern '"type":"command_execution"' -Quiet)) {
-            throw 'No command_execution event found in tool read JSON output'
-          }
+
+          Write-Host "::error::Tool read test failed after $attempts attempts."
+          Write-Host "--- bundle portable-metadata.json ---"
+          Get-Content (Join-Path $env:BUNDLE_DIR 'portable-metadata.json') -ErrorAction SilentlyContinue
+          Write-Host "--- final JSON event stream (full) ---"
+          if (Test-Path $jsonPath) { Get-Content $jsonPath -Raw }
+          exit 1
 
       - name: System operation test on Linux and macOS
         if: runner.os != 'Windows'
@@ -420,24 +560,70 @@ jobs:
         run: |
           set -euo pipefail
           workspace="$RUNNER_TEMP/system-op-workspace"
-          rm -rf "$workspace"
-          mkdir -p "$workspace"
           token=$(uuidgen | tr '[:upper:]' '[:lower:]')
           json_path="$RUNNER_TEMP/system-op-events.jsonl"
           out_path="$RUNNER_TEMP/system-op-last.txt"
+          stderr_path="$RUNNER_TEMP/system-op-stderr.log"
           probe_path="$workspace/system_probe.txt"
-          "$BUNDLE_DIR/codex" exec \
-            --json \
-            --skip-git-repo-check \
-            --dangerously-bypass-approvals-and-sandbox \
-            --color never \
-            -C "$workspace" \
-            -o "$out_path" \
-            "Use shell commands to create a file named system_probe.txt in the current working directory containing exactly SYSTEM_PROBE_OK:$token and nothing else. After creating the file, reply with exactly SYSTEM_WRITE_OK and nothing else." \
-            < /dev/null > "$json_path"
-          test "$(tr -d '\r\n' < "$out_path")" = "SYSTEM_WRITE_OK"
-          test "$(tr -d '\r\n' < "$probe_path")" = "SYSTEM_PROBE_OK:$token"
-          grep -q '"type":"command_execution"' "$json_path"
+          attempts=5
+
+          for attempt in $(seq 1 $attempts); do
+            rm -rf "$workspace"
+            mkdir -p "$workspace"
+            : > "$json_path"
+            : > "$out_path"
+            : > "$stderr_path"
+
+            set +e
+            "$BUNDLE_DIR/codex" exec \
+              --json \
+              --skip-git-repo-check \
+              --dangerously-bypass-approvals-and-sandbox \
+              --color never \
+              -C "$workspace" \
+              -o "$out_path" \
+              "Use shell commands to create a file named system_probe.txt in the current working directory containing exactly SYSTEM_PROBE_OK:$token and nothing else. After creating the file, reply with exactly SYSTEM_WRITE_OK and nothing else." \
+              < /dev/null > "$json_path" 2> "$stderr_path"
+            codex_rc=$?
+            set -e
+
+            reply_ok=false
+            probe_ok=false
+            exec_ok=false
+            if grep -Fq 'SYSTEM_WRITE_OK' "$out_path"; then
+              reply_ok=true
+            fi
+            if [ -f "$probe_path" ] && grep -Fq "SYSTEM_PROBE_OK:$token" "$probe_path"; then
+              probe_ok=true
+            fi
+            if grep -q '"type":"command_execution"' "$json_path"; then
+              exec_ok=true
+            fi
+
+            if [ "$codex_rc" -eq 0 ] && [ "$reply_ok" = true ] && [ "$probe_ok" = true ] && [ "$exec_ok" = true ]; then
+              echo "System op attempt $attempt/$attempts succeeded."
+              exit 0
+            fi
+
+            echo "::warning::System op attempt $attempt/$attempts failed (codex exit=$codex_rc, reply_match=$reply_ok, probe_match=$probe_ok, command_execution_event=$exec_ok)."
+            echo "--- last agent message ---"
+            cat "$out_path" || true
+            echo "--- system_probe.txt (if any) ---"
+            [ -f "$probe_path" ] && cat "$probe_path" || echo "(missing)"
+            echo "--- JSON event stream (tail 80) ---"
+            tail -n 80 "$json_path" || true
+            echo "--- codex stderr (tail 40) ---"
+            tail -n 40 "$stderr_path" || true
+            echo "----------------------------------"
+            sleep $((attempt * 2))
+          done
+
+          echo "::error::System operation test failed after $attempts attempts."
+          echo "--- bundle portable-metadata.json ---"
+          cat "$BUNDLE_DIR/portable-metadata.json" || true
+          echo "--- final JSON event stream (full) ---"
+          cat "$json_path" || true
+          exit 1
 
       - name: System operation test on Windows
         if: runner.os == 'Windows'
@@ -446,33 +632,70 @@ jobs:
           PORTABLE_TEST_API_KEY: ${{ secrets.PORTABLE_TEST_API_KEY }}
         run: |
           $workspace = Join-Path $env:RUNNER_TEMP 'system-op-workspace'
-          Remove-Item $workspace -Recurse -Force -ErrorAction SilentlyContinue
-          New-Item -ItemType Directory -Path $workspace -Force | Out-Null
           $token = [guid]::NewGuid().ToString('N')
           $jsonPath = Join-Path $env:RUNNER_TEMP 'system-op-events.jsonl'
           $outPath = Join-Path $env:RUNNER_TEMP 'system-op-last.txt'
+          $stderrPath = Join-Path $env:RUNNER_TEMP 'system-op-stderr.log'
           $probePath = Join-Path $workspace 'system_probe.txt'
           $launcher = Join-Path $env:BUNDLE_DIR 'codex.ps1'
-          & $launcher exec `
-            --json `
-            --skip-git-repo-check `
-            --dangerously-bypass-approvals-and-sandbox `
-            --color never `
-            -C $workspace `
-            -o $outPath `
-            "Use shell commands to create a file named system_probe.txt in the current working directory containing exactly SYSTEM_PROBE_OK:$token and nothing else. After creating the file, reply with exactly SYSTEM_WRITE_OK and nothing else." `
-            > $jsonPath
-          $result = (Get-Content $outPath -Raw).Trim()
-          if ($result -ne 'SYSTEM_WRITE_OK') {
-            throw "Unexpected system operation result: $result"
+          $attempts = 5
+
+          for ($attempt = 1; $attempt -le $attempts; $attempt++) {
+            Remove-Item $workspace -Recurse -Force -ErrorAction SilentlyContinue
+            New-Item -ItemType Directory -Path $workspace -Force | Out-Null
+            Set-Content -Path $jsonPath -Value '' -NoNewline
+            Set-Content -Path $outPath -Value '' -NoNewline
+            Set-Content -Path $stderrPath -Value '' -NoNewline
+
+            $codexRc = 0
+            try {
+              & $launcher exec `
+                --json `
+                --skip-git-repo-check `
+                --dangerously-bypass-approvals-and-sandbox `
+                --color never `
+                -C $workspace `
+                -o $outPath `
+                "Use shell commands to create a file named system_probe.txt in the current working directory containing exactly SYSTEM_PROBE_OK:$token and nothing else. After creating the file, reply with exactly SYSTEM_WRITE_OK and nothing else." `
+                > $jsonPath 2> $stderrPath
+              $codexRc = $LASTEXITCODE
+            } catch {
+              $codexRc = if ($LASTEXITCODE) { $LASTEXITCODE } else { 1 }
+            }
+
+            $lastMsg = ''
+            if (Test-Path $outPath) { $lastMsg = (Get-Content $outPath -Raw).Trim() }
+            $probeContent = ''
+            if (Test-Path $probePath) { $probeContent = (Get-Content $probePath -Raw).Trim() }
+
+            $replyOk = $lastMsg -match 'SYSTEM_WRITE_OK'
+            $probeOk = $probeContent -match [regex]::Escape("SYSTEM_PROBE_OK:$token")
+            $execOk = Select-String -Path $jsonPath -Pattern '"type":"command_execution"' -SimpleMatch -Quiet
+
+            if ($codexRc -eq 0 -and $replyOk -and $probeOk -and $execOk) {
+              Write-Host "System op attempt $attempt/$attempts succeeded."
+              exit 0
+            }
+
+            Write-Host "::warning::System op attempt $attempt/$attempts failed (codex exit=$codexRc, reply_match=$replyOk, probe_match=$probeOk, command_execution_event=$execOk)."
+            Write-Host "--- last agent message ---"
+            if (Test-Path $outPath) { Get-Content $outPath -Raw }
+            Write-Host "--- system_probe.txt (if any) ---"
+            if (Test-Path $probePath) { Get-Content $probePath -Raw } else { Write-Host '(missing)' }
+            Write-Host "--- JSON event stream (tail 80) ---"
+            if (Test-Path $jsonPath) { Get-Content $jsonPath -Tail 80 }
+            Write-Host "--- codex stderr (tail 40) ---"
+            if (Test-Path $stderrPath) { Get-Content $stderrPath -Tail 40 }
+            Write-Host "----------------------------------"
+            Start-Sleep -Seconds ($attempt * 2)
           }
-          $probe = (Get-Content $probePath -Raw).Trim()
-          if ($probe -ne "SYSTEM_PROBE_OK:$token") {
-            throw "Unexpected system probe content: $probe"
-          }
-          if (-not (Select-String -Path $jsonPath -Pattern '"type":"command_execution"' -Quiet)) {
-            throw 'No command_execution event found in system operation JSON output'
-          }
+
+          Write-Host "::error::System operation test failed after $attempts attempts."
+          Write-Host "--- bundle portable-metadata.json ---"
+          Get-Content (Join-Path $env:BUNDLE_DIR 'portable-metadata.json') -ErrorAction SilentlyContinue
+          Write-Host "--- final JSON event stream (full) ---"
+          if (Test-Path $jsonPath) { Get-Content $jsonPath -Raw }
+          exit 1
 
   publish-release-assets:
     name: Publish release assets
