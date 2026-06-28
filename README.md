@@ -13,7 +13,7 @@ Each GitHub release repackages the official `@openai/codex` binary and bundled `
 Release pages:
 
 - All releases: `https://github.com/HansBug/codex-portable/releases`
-- Current documented release: [`v0.142.3`](https://github.com/HansBug/codex-portable/releases/tag/v0.142.3) published on `2026-06-26`
+- Current documented release: [`v0.142.3`](https://github.com/HansBug/codex-portable/releases/tag/v0.142.3) published on `2026-06-28`
 
 Supported release targets:
 

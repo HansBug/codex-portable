@@ -13,7 +13,7 @@ Generated from templates/README_zh.md.j2 by scripts/render-readme.py.
 Release 页面：
 
 - 全部版本：`https://github.com/HansBug/codex-portable/releases`
-- 当前文档固定版本：[`v0.142.3`](https://github.com/HansBug/codex-portable/releases/tag/v0.142.3)，发布日期 `2026-06-26`
+- 当前文档固定版本：[`v0.142.3`](https://github.com/HansBug/codex-portable/releases/tag/v0.142.3)，发布日期 `2026-06-28`
 
 当前支持发布的目标：
 
