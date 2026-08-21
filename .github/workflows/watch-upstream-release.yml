@@ -76,6 +76,85 @@ jobs:
           echo "upstream_tag=rust-v$version" >> "$GITHUB_OUTPUT"
           echo "npm_url=https://www.npmjs.com/package/@openai/codex/v/$version" >> "$GITHUB_OUTPUT"
 
+      - name: Wait for all npm platform packages
+        timeout-minutes: 95
+        shell: bash
+        env:
+          CODEX_VERSION: ${{ steps.version.outputs.codex_version }}
+        run: |
+          set -euo pipefail
+
+          timeout_seconds=5400
+          poll_seconds=30
+          deadline=$((SECONDS + timeout_seconds))
+
+          platform_aliases=(
+            @openai/codex-linux-x64
+            @openai/codex-linux-arm64
+            @openai/codex-darwin-x64
+            @openai/codex-darwin-arm64
+            @openai/codex-win32-x64
+            @openai/codex-win32-arm64
+          )
+          optional_dependencies="$(
+            timeout 30s npm view \
+              "@openai/codex@${CODEX_VERSION}" \
+              optionalDependencies \
+              --json \
+              --prefer-online
+          )"
+          platform_specs=()
+          for platform_alias in "${platform_aliases[@]}"; do
+            package_spec="$(
+              jq -r \
+                --arg alias "$platform_alias" \
+                '.[$alias] // empty' \
+                <<< "$optional_dependencies"
+            )"
+            if [[ "$package_spec" != npm:@openai/codex@* ]]; then
+              echo "Missing or unexpected optional dependency:" >&2
+              printf '  %s\n' "$platform_alias" >&2
+              exit 1
+            fi
+            platform_specs+=("${package_spec#npm:}")
+          done
+
+          # Upstream publishes the main package and platform variants
+          # separately.
+          while true; do
+            missing_versions=()
+            for package_spec in "${platform_specs[@]}"; do
+              expected_version="${package_spec##*@}"
+              published_version=""
+              if published_version="$(
+                timeout 30s npm view \
+                  "$package_spec" \
+                  version \
+                  --prefer-online \
+                  2>/dev/null
+              )" && [ "$published_version" = "$expected_version" ]; then
+                continue
+              fi
+              missing_versions+=("$expected_version")
+            done
+
+            if [ "${#missing_versions[@]}" -eq 0 ]; then
+              echo "All npm platform packages are available for Codex:"
+              printf '  %s\n' "$CODEX_VERSION"
+              break
+            fi
+
+            if (( SECONDS >= deadline )); then
+              echo "Timed out waiting for npm platform packages:" >&2
+              printf '  %s\n' "${missing_versions[*]}" >&2
+              exit 1
+            fi
+
+            echo "Waiting for npm platform packages:"
+            printf '  %s\n' "${missing_versions[*]}"
+            sleep "$poll_seconds"
+          done
+
       - name: Fetch upstream release metadata
         id: upstream
         shell: bash
@@ -104,7 +183,7 @@ jobs:
           echo "upstream_url=$(jq -r '.html_url' "$release_json")" >> "$GITHUB_OUTPUT"
           echo "compare_url=$compare_url" >> "$GITHUB_OUTPUT"
 
-      - name: Prepare release target
+      - name: Resolve release target
         id: target
         shell: bash
         env:
@@ -120,18 +199,17 @@ jobs:
             exists=false
           fi
 
-          if [ "$exists" = true ] && [ "$overwrite" = true ]; then
-            gh release delete "$RELEASE_TAG" --cleanup-tag -y --repo "$GITHUB_REPOSITORY"
-            exists=false
-          fi
-
           should_create=true
-          if [ "$exists" = true ]; then
+          delete_existing=false
+          if [ "$exists" = true ] && [ "$overwrite" = true ]; then
+            delete_existing=true
+          elif [ "$exists" = true ]; then
             should_create=false
           fi
 
           echo "overwrite=$overwrite" >> "$GITHUB_OUTPUT"
           echo "should_create=$should_create" >> "$GITHUB_OUTPUT"
+          echo "delete_existing=$delete_existing" >> "$GITHUB_OUTPUT"
 
       - name: Generate release notes with Codex
         id: notes
@@ -255,8 +333,16 @@ jobs:
           RELEASE_TAG: ${{ steps.version.outputs.release_tag }}
           RELEASE_VERSION: ${{ steps.version.outputs.codex_version }}
           NOTES_FILE: ${{ steps.notes.outputs.notes_file }}
+          DELETE_EXISTING: ${{ steps.target.outputs.delete_existing }}
         run: |
           set -euo pipefail
+
+          if [ "$DELETE_EXISTING" = true ]; then
+            gh release delete "$RELEASE_TAG" \
+              --cleanup-tag \
+              -y \
+              --repo "$GITHUB_REPOSITORY"
+          fi
 
           for attempt in 1 2 3; do
             if gh release create "$RELEASE_TAG" \
