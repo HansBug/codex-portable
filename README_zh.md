@@ -13,7 +13,7 @@ Generated from templates/README_zh.md.j2 by scripts/render-readme.py.
 Release 页面：
 
 - 全部版本：`https://github.com/HansBug/codex-portable/releases`
-- 当前文档固定版本：[`v0.150.0`](https://github.com/HansBug/codex-portable/releases/tag/v0.150.0)，发布日期 `2026-08-27`
+- 当前文档固定版本：[`v0.150.1`](https://github.com/HansBug/codex-portable/releases/tag/v0.150.1)，发布日期 `2026-08-27`
 
 当前支持发布的目标：
 
@@ -27,16 +27,16 @@ Release 页面：
 
 ## 当前 release 附件
 
-本 README 固定到当前已发布的 `v0.150.0`。下表会在 release 附件全部上传完成后，基于真实附件列表自动刷新。
+本 README 固定到当前已发布的 `v0.150.1`。下表会在 release 附件全部上传完成后，基于真实附件列表自动刷新。
 
 | 平台 | 推荐归档 | 备用归档 | SHA-256 文件 |
 | --- | --- | --- | --- |
-| Linux x64 | [codex-portable-x86_64-unknown-linux-musl-v0.150.0.tar.gz](https://github.com/HansBug/codex-portable/releases/download/v0.150.0/codex-portable-x86_64-unknown-linux-musl-v0.150.0.tar.gz) | [codex-portable-x86_64-unknown-linux-musl-v0.150.0.zip](https://github.com/HansBug/codex-portable/releases/download/v0.150.0/codex-portable-x86_64-unknown-linux-musl-v0.150.0.zip) | [codex-portable-x86_64-unknown-linux-musl-v0.150.0.sha256](https://github.com/HansBug/codex-portable/releases/download/v0.150.0/codex-portable-x86_64-unknown-linux-musl-v0.150.0.sha256) |
-| Linux arm64 | [codex-portable-aarch64-unknown-linux-musl-v0.150.0.tar.gz](https://github.com/HansBug/codex-portable/releases/download/v0.150.0/codex-portable-aarch64-unknown-linux-musl-v0.150.0.tar.gz) | [codex-portable-aarch64-unknown-linux-musl-v0.150.0.zip](https://github.com/HansBug/codex-portable/releases/download/v0.150.0/codex-portable-aarch64-unknown-linux-musl-v0.150.0.zip) | [codex-portable-aarch64-unknown-linux-musl-v0.150.0.sha256](https://github.com/HansBug/codex-portable/releases/download/v0.150.0/codex-portable-aarch64-unknown-linux-musl-v0.150.0.sha256) |
-| macOS x64 | [codex-portable-x86_64-apple-darwin-v0.150.0.tar.gz](https://github.com/HansBug/codex-portable/releases/download/v0.150.0/codex-portable-x86_64-apple-darwin-v0.150.0.tar.gz) | [codex-portable-x86_64-apple-darwin-v0.150.0.zip](https://github.com/HansBug/codex-portable/releases/download/v0.150.0/codex-portable-x86_64-apple-darwin-v0.150.0.zip) | [codex-portable-x86_64-apple-darwin-v0.150.0.sha256](https://github.com/HansBug/codex-portable/releases/download/v0.150.0/codex-portable-x86_64-apple-darwin-v0.150.0.sha256) |
-| macOS arm64 | [codex-portable-aarch64-apple-darwin-v0.150.0.tar.gz](https://github.com/HansBug/codex-portable/releases/download/v0.150.0/codex-portable-aarch64-apple-darwin-v0.150.0.tar.gz) | [codex-portable-aarch64-apple-darwin-v0.150.0.zip](https://github.com/HansBug/codex-portable/releases/download/v0.150.0/codex-portable-aarch64-apple-darwin-v0.150.0.zip) | [codex-portable-aarch64-apple-darwin-v0.150.0.sha256](https://github.com/HansBug/codex-portable/releases/download/v0.150.0/codex-portable-aarch64-apple-darwin-v0.150.0.sha256) |
-| Windows x64 | [codex-portable-x86_64-pc-windows-msvc-v0.150.0.zip](https://github.com/HansBug/codex-portable/releases/download/v0.150.0/codex-portable-x86_64-pc-windows-msvc-v0.150.0.zip) | - | [codex-portable-x86_64-pc-windows-msvc-v0.150.0.sha256](https://github.com/HansBug/codex-portable/releases/download/v0.150.0/codex-portable-x86_64-pc-windows-msvc-v0.150.0.sha256) |
-| Windows arm64 | [codex-portable-aarch64-pc-windows-msvc-v0.150.0.zip](https://github.com/HansBug/codex-portable/releases/download/v0.150.0/codex-portable-aarch64-pc-windows-msvc-v0.150.0.zip) | - | [codex-portable-aarch64-pc-windows-msvc-v0.150.0.sha256](https://github.com/HansBug/codex-portable/releases/download/v0.150.0/codex-portable-aarch64-pc-windows-msvc-v0.150.0.sha256) |
+| Linux x64 | [codex-portable-x86_64-unknown-linux-musl-v0.150.1.tar.gz](https://github.com/HansBug/codex-portable/releases/download/v0.150.1/codex-portable-x86_64-unknown-linux-musl-v0.150.1.tar.gz) | [codex-portable-x86_64-unknown-linux-musl-v0.150.1.zip](https://github.com/HansBug/codex-portable/releases/download/v0.150.1/codex-portable-x86_64-unknown-linux-musl-v0.150.1.zip) | [codex-portable-x86_64-unknown-linux-musl-v0.150.1.sha256](https://github.com/HansBug/codex-portable/releases/download/v0.150.1/codex-portable-x86_64-unknown-linux-musl-v0.150.1.sha256) |
+| Linux arm64 | [codex-portable-aarch64-unknown-linux-musl-v0.150.1.tar.gz](https://github.com/HansBug/codex-portable/releases/download/v0.150.1/codex-portable-aarch64-unknown-linux-musl-v0.150.1.tar.gz) | [codex-portable-aarch64-unknown-linux-musl-v0.150.1.zip](https://github.com/HansBug/codex-portable/releases/download/v0.150.1/codex-portable-aarch64-unknown-linux-musl-v0.150.1.zip) | [codex-portable-aarch64-unknown-linux-musl-v0.150.1.sha256](https://github.com/HansBug/codex-portable/releases/download/v0.150.1/codex-portable-aarch64-unknown-linux-musl-v0.150.1.sha256) |
+| macOS x64 | [codex-portable-x86_64-apple-darwin-v0.150.1.tar.gz](https://github.com/HansBug/codex-portable/releases/download/v0.150.1/codex-portable-x86_64-apple-darwin-v0.150.1.tar.gz) | [codex-portable-x86_64-apple-darwin-v0.150.1.zip](https://github.com/HansBug/codex-portable/releases/download/v0.150.1/codex-portable-x86_64-apple-darwin-v0.150.1.zip) | [codex-portable-x86_64-apple-darwin-v0.150.1.sha256](https://github.com/HansBug/codex-portable/releases/download/v0.150.1/codex-portable-x86_64-apple-darwin-v0.150.1.sha256) |
+| macOS arm64 | [codex-portable-aarch64-apple-darwin-v0.150.1.tar.gz](https://github.com/HansBug/codex-portable/releases/download/v0.150.1/codex-portable-aarch64-apple-darwin-v0.150.1.tar.gz) | [codex-portable-aarch64-apple-darwin-v0.150.1.zip](https://github.com/HansBug/codex-portable/releases/download/v0.150.1/codex-portable-aarch64-apple-darwin-v0.150.1.zip) | [codex-portable-aarch64-apple-darwin-v0.150.1.sha256](https://github.com/HansBug/codex-portable/releases/download/v0.150.1/codex-portable-aarch64-apple-darwin-v0.150.1.sha256) |
+| Windows x64 | [codex-portable-x86_64-pc-windows-msvc-v0.150.1.zip](https://github.com/HansBug/codex-portable/releases/download/v0.150.1/codex-portable-x86_64-pc-windows-msvc-v0.150.1.zip) | - | [codex-portable-x86_64-pc-windows-msvc-v0.150.1.sha256](https://github.com/HansBug/codex-portable/releases/download/v0.150.1/codex-portable-x86_64-pc-windows-msvc-v0.150.1.sha256) |
+| Windows arm64 | [codex-portable-aarch64-pc-windows-msvc-v0.150.1.zip](https://github.com/HansBug/codex-portable/releases/download/v0.150.1/codex-portable-aarch64-pc-windows-msvc-v0.150.1.zip) | - | [codex-portable-aarch64-pc-windows-msvc-v0.150.1.sha256](https://github.com/HansBug/codex-portable/releases/download/v0.150.1/codex-portable-aarch64-pc-windows-msvc-v0.150.1.sha256) |
 
 
 ## 先选安装路径
@@ -48,21 +48,21 @@ Release 页面：
 
 ## Fast install
 
-下面的命令会直接安装当前文档固定版本 `v0.150.0`。如果你需要更老的 Codex 版本，请打开 Releases 页面，把下面固定写死的 tag 和资源文件名替换成目标版本即可。
+下面的命令会直接安装当前文档固定版本 `v0.150.1`。如果你需要更老的 Codex 版本，请打开 Releases 页面，把下面固定写死的 tag 和资源文件名替换成目标版本即可。
 
 下面每个平台只展示一个最常见架构的命令。其他已支持架构的安装步骤相同，只需要把资源文件名替换成上面附件表里对应的那个即可。
 
 ### Linux x64（bash）
 
 ```bash
-VER="v0.150.0"
-ASSET="codex-portable-x86_64-unknown-linux-musl-v0.150.0.tar.gz"
+VER="v0.150.1"
+ASSET="codex-portable-x86_64-unknown-linux-musl-v0.150.1.tar.gz"
 
 touch "$HOME/.bashrc"
 curl -fL -o "$ASSET" "https://github.com/HansBug/codex-portable/releases/download/$VER/$ASSET"
 mkdir -p "$HOME/.local/lib"
 tar -xzf "$ASSET" -C "$HOME/.local/lib"
-ln -sfn "$HOME/.local/lib/codex-portable-x86_64-unknown-linux-musl-v0.150.0" "$HOME/.local/lib/codex-portable"
+ln -sfn "$HOME/.local/lib/codex-portable-x86_64-unknown-linux-musl-v0.150.1" "$HOME/.local/lib/codex-portable"
 grep -qxF 'export PATH="$HOME/.local/lib/codex-portable:$PATH"' "$HOME/.bashrc" || echo 'export PATH="$HOME/.local/lib/codex-portable:$PATH"' >> "$HOME/.bashrc"
 
 export PATH="$HOME/.local/lib/codex-portable:$PATH"
@@ -72,14 +72,14 @@ codex --version
 ### macOS arm64（zsh）
 
 ```zsh
-VER="v0.150.0"
-ASSET="codex-portable-aarch64-apple-darwin-v0.150.0.tar.gz"
+VER="v0.150.1"
+ASSET="codex-portable-aarch64-apple-darwin-v0.150.1.tar.gz"
 
 touch "$HOME/.zshrc"
 curl -fL -o "$ASSET" "https://github.com/HansBug/codex-portable/releases/download/$VER/$ASSET"
 mkdir -p "$HOME/.local/lib"
 tar -xzf "$ASSET" -C "$HOME/.local/lib"
-ln -sfn "$HOME/.local/lib/codex-portable-aarch64-apple-darwin-v0.150.0" "$HOME/.local/lib/codex-portable"
+ln -sfn "$HOME/.local/lib/codex-portable-aarch64-apple-darwin-v0.150.1" "$HOME/.local/lib/codex-portable"
 grep -qxF 'export PATH="$HOME/.local/lib/codex-portable:$PATH"' "$HOME/.zshrc" || echo 'export PATH="$HOME/.local/lib/codex-portable:$PATH"' >> "$HOME/.zshrc"
 
 export PATH="$HOME/.local/lib/codex-portable:$PATH"
@@ -91,14 +91,14 @@ codex --version
 ### Windows PowerShell
 
 ```powershell
-$Ver = 'v0.150.0'
-$Asset = 'codex-portable-x86_64-pc-windows-msvc-v0.150.0.zip'
+$Ver = 'v0.150.1'
+$Asset = 'codex-portable-x86_64-pc-windows-msvc-v0.150.1.zip'
 
 Invoke-WebRequest "https://github.com/HansBug/codex-portable/releases/download/$Ver/$Asset" -OutFile $Asset
 $Root = Join-Path $env:LOCALAPPDATA 'Programs'
 New-Item -ItemType Directory -Force $Root | Out-Null
 Expand-Archive $Asset -DestinationPath $Root -Force
-$Bundle = Join-Path $Root 'codex-portable-x86_64-pc-windows-msvc-v0.150.0'
+$Bundle = Join-Path $Root 'codex-portable-x86_64-pc-windows-msvc-v0.150.1'
 $UserPath = [Environment]::GetEnvironmentVariable('Path', 'User')
 if ([string]::IsNullOrWhiteSpace($UserPath)) {
   [Environment]::SetEnvironmentVariable('Path', $Bundle, 'User')
@@ -121,12 +121,12 @@ Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 在 `cmd.exe` 中执行：
 
 ```cmd
-set "VER=v0.150.0"
-set "ASSET=codex-portable-x86_64-pc-windows-msvc-v0.150.0.zip"
+set "VER=v0.150.1"
+set "ASSET=codex-portable-x86_64-pc-windows-msvc-v0.150.1.zip"
 ```
 
 ```cmd
-powershell -NoProfile -Command "$asset='%ASSET%'; $root=Join-Path $env:LOCALAPPDATA 'Programs'; Invoke-WebRequest \"https://github.com/HansBug/codex-portable/releases/download/%VER%/$asset\" -OutFile $asset; New-Item -ItemType Directory -Force $root | Out-Null; Expand-Archive $asset -DestinationPath $root -Force; $bundle=Join-Path $root 'codex-portable-x86_64-pc-windows-msvc-v0.150.0'; $userPath=[Environment]::GetEnvironmentVariable('Path','User'); if([string]::IsNullOrWhiteSpace($userPath)){[Environment]::SetEnvironmentVariable('Path',$bundle,'User')} elseif(($userPath -split ';') -notcontains $bundle){[Environment]::SetEnvironmentVariable('Path',\"$userPath;$bundle\",'User')}; Write-Host $bundle"
+powershell -NoProfile -Command "$asset='%ASSET%'; $root=Join-Path $env:LOCALAPPDATA 'Programs'; Invoke-WebRequest \"https://github.com/HansBug/codex-portable/releases/download/%VER%/$asset\" -OutFile $asset; New-Item -ItemType Directory -Force $root | Out-Null; Expand-Archive $asset -DestinationPath $root -Force; $bundle=Join-Path $root 'codex-portable-x86_64-pc-windows-msvc-v0.150.1'; $userPath=[Environment]::GetEnvironmentVariable('Path','User'); if([string]::IsNullOrWhiteSpace($userPath)){[Environment]::SetEnvironmentVariable('Path',$bundle,'User')} elseif(($userPath -split ';') -notcontains $bundle){[Environment]::SetEnvironmentVariable('Path',\"$userPath;$bundle\",'User')}; Write-Host $bundle"
 ```
 
 重新打开一个新的 `cmd.exe`，再验证：
@@ -141,12 +141,12 @@ codex.cmd --version
 
 ### 1. 打开 release 页面
 
-- 当前版本：`https://github.com/HansBug/codex-portable/releases/tag/v0.150.0`
+- 当前版本：`https://github.com/HansBug/codex-portable/releases/tag/v0.150.1`
 - 全部版本：`https://github.com/HansBug/codex-portable/releases`
 
 ### 2. 下载正确的归档文件
 
-Linux 和 macOS 推荐优先下载 `tar.gz`，因为它能保留可执行权限。当前 `v0.150.0` 的真实附件已经在上面的附件表中全部列出。
+Linux 和 macOS 推荐优先下载 `tar.gz`，因为它能保留可执行权限。当前 `v0.150.1` 的真实附件已经在上面的附件表中全部列出。
 
 ### 3. 解压并启动
 
@@ -155,22 +155,22 @@ Linux 和 macOS 推荐优先下载 `tar.gz`，因为它能保留可执行权限�
 #### Linux x64
 
 ```bash
-tar -xzf codex-portable-x86_64-unknown-linux-musl-v0.150.0.tar.gz
-cd codex-portable-x86_64-unknown-linux-musl-v0.150.0
+tar -xzf codex-portable-x86_64-unknown-linux-musl-v0.150.1.tar.gz
+cd codex-portable-x86_64-unknown-linux-musl-v0.150.1
 ./codex --version
 ```
 
 #### macOS arm64
 
 ```zsh
-tar -xzf codex-portable-aarch64-apple-darwin-v0.150.0.tar.gz
-cd codex-portable-aarch64-apple-darwin-v0.150.0
+tar -xzf codex-portable-aarch64-apple-darwin-v0.150.1.tar.gz
+cd codex-portable-aarch64-apple-darwin-v0.150.1
 ./codex --version
 ```
 
 #### Windows
 
-1. 解压 `codex-portable-x86_64-pc-windows-msvc-v0.150.0.zip`
+1. 解压 `codex-portable-x86_64-pc-windows-msvc-v0.150.1.zip`
 2. 在解压后的目录里打开 `cmd.exe` 或 PowerShell
 3. 优先运行 `codex.cmd --version`
 4. 如果你习惯 PowerShell，也可以运行 `.\codex.ps1 --version`
@@ -188,21 +188,21 @@ Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 Linux 示例：
 
 ```bash
-echo 'export PATH="/path/to/codex-portable-x86_64-unknown-linux-musl-v0.150.0:$PATH"' >> "$HOME/.bashrc"
-export PATH="/path/to/codex-portable-x86_64-unknown-linux-musl-v0.150.0:$PATH"
+echo 'export PATH="/path/to/codex-portable-x86_64-unknown-linux-musl-v0.150.1:$PATH"' >> "$HOME/.bashrc"
+export PATH="/path/to/codex-portable-x86_64-unknown-linux-musl-v0.150.1:$PATH"
 ```
 
 macOS 示例：
 
 ```zsh
-echo 'export PATH="/path/to/codex-portable-aarch64-apple-darwin-v0.150.0:$PATH"' >> "$HOME/.zshrc"
-export PATH="/path/to/codex-portable-aarch64-apple-darwin-v0.150.0:$PATH"
+echo 'export PATH="/path/to/codex-portable-aarch64-apple-darwin-v0.150.1:$PATH"' >> "$HOME/.zshrc"
+export PATH="/path/to/codex-portable-aarch64-apple-darwin-v0.150.1:$PATH"
 ```
 
 Windows 可以在系统设置里手工加，也可以用 PowerShell：
 
 ```powershell
-[Environment]::SetEnvironmentVariable('Path', "$env:Path;C:\path\to\codex-portable-x86_64-pc-windows-msvc-v0.150.0", 'User')
+[Environment]::SetEnvironmentVariable('Path', "$env:Path;C:\path\to\codex-portable-x86_64-pc-windows-msvc-v0.150.1", 'User')
 ```
 
 ## 基础配置
@@ -320,7 +320,7 @@ bundle 不包含用户数据，例如 `~/.codex`、`auth.json`、历史会话、
 
 ## 验证情况
 
-当前文档固定版本 `v0.150.0` 的 Linux `Fast install`、`Manual / offline install` 和 `Basic config` 已在干净的 Ubuntu Docker 容器中实际验证后再发布。
+当前文档固定版本 `v0.150.1` 的 Linux `Fast install`、`Manual / offline install` 和 `Basic config` 已在干净的 Ubuntu Docker 容器中实际验证后再发布。
 
 ## Release 与构建工作流
 
